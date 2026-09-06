@@ -3,6 +3,7 @@ const session = require('express-session');
 const axios = require('axios');
 const path = require('path');
 const cookieParser = require('cookie-parser');
+const fs = require('fs');
 
 const app = express();
 
@@ -32,14 +33,6 @@ app.use(cookieParser());
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'mini.html'));
 });
-
-// 회원 로그인 페이지
-app.get('/loginPage', (req,res) => {
-    res.sendFile(path.join(__dirname,'loginPage.html'));
-})
-
-
-
 
 
 // 2. 이메일 발송 POST 요청
@@ -84,6 +77,114 @@ app.post('/send-email', (req, res) => {
     });
 });
 
+
+//----------------회원가입-----------------------------------
+
+const FILE_PATH = './users.json'; // 회원 정보가 저장될 파일 경로 //쓰기할때 없으면 새파일 생성함
+// let users = [{ id: "user1", email: "a@a.com" }]; //원래 비워놔야하는데 테스트용 하드코딩 더미
+let users
+
+// 회원 로그인 페이지
+app.get('/loginPage', (req,res) => {
+    res.sendFile(path.join(__dirname,'loginPage.html'));
+})
+
+app.get('/signUp', (req,res) => {
+    res.sendFile(path.join(__dirname,'signUp.html'));
+})
+
+
+// 1. DB 대체 함수 node.js 기본내장 fs 활용
+
+// 파일에서 회원 목록 읽어오기
+function readUsers() {
+
+    //아예 처음 회원가입할때 FILE_PATH 파일이 안만들어졌는데 그걸체크하는 if문
+    //회원가입에서 readUsers()를 먼저 보고 회원목록을 보고 user배열에 넣기때문
+    //writeUser()하면 생성되는데 그전에 readUser()를 봐서 생기는 에러
+    if(fs.existsSync(FILE_PATH)){
+        //현재 json형태인 텍스트 상태
+        const readText = fs.readFileSync(FILE_PATH, "utf-8");
+        if(readText){
+            users = JSON.parse(readText)
+        }
+        else{
+            users = []
+        }
+    }else{
+        users = []
+    }
+  
+}
+
+// 파일에 회원 목록 저장하기
+function writeUsers(users) {
+    // fs 모듈을 사용해 FILE_PATH에 덮어쓰기
+    // 문자열로 변환하여 파일에 쓰기 (기존 내용 덮어쓰기)
+    fs.writeFileSync(FILE_PATH, JSON.stringify(users));
+}
+
+
+// 2. 회원가입, 로그인 기능 (API)
+// 회원가입
+app.post('/api/signup', (req, res) => {
+  const { id, password, email } = req.body;
+  
+  // 1. readUsers()로 기존 유저 목록 불러오기
+    readUsers();
+  // 2. id 중복 검사
+    const duplicateUser = users.find(user => user.u_id == id);
+    if(duplicateUser){
+        return res.json({ success: false, message: "id 중복입니다!" });
+    }else{
+
+        // 3. 중복이 아니면 새 유저 객체 만들어서 배열에 push
+        const user = {
+            u_id : id,
+            u_password : password,
+            u_email : email
+        }
+
+        users.push(user);
+
+        // 4. writeUsers()로 파일에 업데이트된 배열 저장
+        writeUsers(users)
+        
+        // 5. 성공 메시지 응답
+        res.status(201).json({
+            success : true,
+            message : "회원가입성공!"
+        });
+    }
+});
+
+// 로그인 
+app.post('/api/login', (req, res) => {
+  const { id, password } = req.body;
+
+  // 1. readUsers()로 유저 목록 불러오기
+  readUsers()
+  // 2. id와 password가 일치하는 유저 찾기
+  const loginUser = users.find(user => user.u_id == id && user.u_password == password);
+  if(loginUser){
+    // 3. 일치하면 해당 유저 정보(email 등)를 프론트로 응답
+    res.status(200).json(loginUser);
+  }else{
+    // 4. 실패 시 에러 메시지 응답
+    res.send("로그인 실패!")
+  }
+  
+
+});
+
+// 결제 완료 및 이메일 발송 API
+app.post('/api/payment-success', (req, res) => {
+  const { userId, paymentData } = req.body;
+
+  // 1. readUsers()로 유저 목록 불러와서 userId에 해당하는 유저의 email 찾기
+  // 2. 찾은 email을 수신자로 설정하여 Nodemailer 발송 로직 실행
+  // 3. 이메일 발송 성공 시 프론트로 결과 응답
+});
 
 //----------------------------------------------------------------------------------------------------------------------------
 

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>회원가입 폼</title>
+<style>
+    /* 기본 리셋 및 폰트 설정 */
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+    
+    body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); 
+        font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+    }
+
+    /* 회원가입 카드 컨테이너 */
+    .signup-wrapper {
+        background: #ffffff;
+        width: 420px; /* 로그인 폼보다 항목이 많아 폼을 살짝 넓혔습니다 */
+        padding: 50px 40px;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    }
+
+    h2 {
+        font-size: 24px;
+        font-weight: 700;
+        text-align: center;
+        margin-bottom: 40px;
+        color: #2d3748;
+        letter-spacing: -0.5px;
+    }
+
+    /* 입력 폼 그룹 */
+    .input-group {
+        display: flex;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .input-group label {
+        width: 75px; /* PW 확인, Email 등 길어진 글자에 맞춰 넓이 증가 */
+        font-size: 14px;
+        font-weight: 600;
+        color: #4a5568;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .input-group input {
+        flex: 1;
+        height: 50px;
+        background-color: #f7fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 25px;
+        padding: 0 20px;
+        font-size: 15px;
+        color: #2d3748;
+        transition: all 0.3s ease;
+    }
+
+    .input-group input:focus {
+        outline: none;
+        border-color: #4299e1;
+        background-color: #ffffff;
+        box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.15);
+    }
+    
+    .input-group input::placeholder {
+        color: #a0aec0;
+        font-size: 14px;
+    }
+
+    /* 회원가입 버튼 */
+    .signup-btn {
+        width: 100%;
+        height: 50px;
+        margin-top: 15px;
+        background-color: #4299e1;
+        color: white;
+        border: none;
+        border-radius: 25px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.2s ease, transform 0.1s ease;
+    }
+
+    .signup-btn:hover {
+        background-color: #3182ce;
+    }
+
+    .signup-btn:active {
+        transform: scale(0.98);
+    }
+
+    /* 하단 로그인 이동 링크 */
+    .link-group {
+        display: flex;
+        justify-content: center;
+        margin-top: 25px;
+    }
+
+    .link-group a {
+        text-decoration: none;
+        color: #718096;
+        font-size: 14px;
+        font-weight: 600;
+        transition: color 0.2s ease;
+    }
+
+    .link-group a:hover {
+        color: #4299e1; 
+    }
+</style>
+</head>
+<body>
+
+    <div class="signup-wrapper">
+        <h2>회원가입</h2>
+        
+        <div class="input-group">
+            <label for="userid">ID</label>
+            <input type="text" id="userid" placeholder="아이디를 입력하세요" autocomplete="off">
+        </div>
+        
+        <div class="input-group">
+            <label for="userpw">PW</label>
+            <input type="password" id="userpw" placeholder="비밀번호를 입력하세요">
+        </div>
+
+        <div class="input-group">
+            <label for="userpw_confirm">PW 확인</label>
+            <input type="password" id="userpw_confirm" placeholder="비밀번호를 다시 입력하세요">
+        </div>
+
+        <div class="input-group">
+            <label for="useremail">Email</label>
+            <input type="email" id="useremail" placeholder="example@email.com">
+        </div>
+
+        <button type="submit" class="signup-btn">가입하기</button>
+
+        <div class="link-group">
+            <a href="#">이미 계정이 있으신가요? 로그인</a>
+        </div>
+    </div>
+
+</body>
+</html>

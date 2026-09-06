@@ -1,12 +1,149 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>로그인 폼</title>
+<style>
+    /* 기본 리셋 및 폰트 설정 */
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+    
+    body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); 
+        font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+    }
+
+    /* 로그인 카드 컨테이너 */
+    .login-wrapper {
+        background: #ffffff;
+        width: 380px;
+        padding: 50px 40px;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    }
+
+    h2 {
+        font-size: 24px;
+        font-weight: 700;
+        text-align: center;
+        margin-bottom: 40px;
+        color: #2d3748;
+        letter-spacing: -0.5px;
+    }
+
+    /* 입력 폼 그룹 */
+    .input-group {
+        display: flex;
+        align-items: center;
+        margin-bottom: 24px;
+    }
+
+    .input-group label {
+        width: 55px;
+        font-size: 15px;
+        font-weight: 600;
+        color: #4a5568;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .input-group input {
+        flex: 1;
+        height: 50px;
+        background-color: #f7fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 25px;
+        padding: 0 20px;
+        font-size: 15px;
+        color: #2d3748;
+        transition: all 0.3s ease;
+    }
+
+    .input-group input:focus {
+        outline: none;
+        border-color: #4299e1;
+        background-color: #ffffff;
+        box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.15);
+    }
+    
+    .input-group input::placeholder {
+        color: #a0aec0;
+        font-size: 14px;
+    }
+
+    /* 로그인 버튼 */
+    .login-btn {
+        width: 100%;
+        height: 50px;
+        margin-top: 10px;
+        background-color: #4299e1;
+        color: white;
+        border: none;
+        border-radius: 25px; /* 입력창과 통일감 있는 둥근 모서리 */
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.2s ease, transform 0.1s ease;
+    }
+
+    .login-btn:hover {
+        background-color: #3182ce;
+    }
+
+    .login-btn:active {
+        transform: scale(0.98); /* 클릭 시 살짝 눌리는 효과 */
+    }
+
+    /* 하단 링크 그룹 */
+    .link-group {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 20px;
+    }
+
+    .link-group a {
+        text-decoration: none;
+        color: #718096;
+        font-size: 14px;
+        font-weight: 600;
+        transition: color 0.2s ease;
+    }
+
+    .link-group a:hover {
+        color: #4299e1; 
+    }
+</style>
 </head>
 <body>
-    <h1>로그인</h1>
+
+    <div class="login-wrapper">
+        <h2>로그인</h2>
+        
+        <div class="input-group">
+            <label for="userid">ID</label>
+            <input type="text" id="userid" placeholder="아이디를 입력하세요" autocomplete="off">
+        </div>
+        
+        <div class="input-group">
+            <label for="userpw">PW</label>
+            <input type="password" id="userpw" placeholder="비밀번호를 입력하세요">
+        </div>
+
+        <!-- 추가된 로그인 버튼 -->
+        <button type="submit" class="login-btn">로그인</button>
+
+        <div class="link-group">
+            <a href="/signUp">회원가입</a>
+        </div>
+    </div>
 
 </body>
 </html>

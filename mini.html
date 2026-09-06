@@ -120,9 +120,9 @@
 /* 타임라인 레이아웃 컨테이너 */
 #payment-card-layer .payment-card .timeline { 
     position: relative; 
+    padding-left: 30px;
     max-width: 300px; 
     margin: 0 auto 30px auto; 
-    padding-left: 30px; 
     text-align: left; 
 }
 
@@ -130,19 +130,19 @@
 #payment-card-layer .payment-card .timeline::before { 
     content: ''; 
     position: absolute; 
-    left: 9px; 
+    left: 39px; 
     top: 5px; 
     width: 2px; 
     height: calc(100% - 30px); 
     background: #e0e0e0; 
-    z-index: 1; 
+    z-index: 0; 
 }
 
 /* 타임라인 개별 아이템 기본 상태 */
 #payment-card-layer .payment-card .timeline .timeline-item { 
     position: relative; 
+    padding-left: 35px; 
     margin-bottom: 35px; 
-    opacity: 0.4; 
     transition: all 0.4s ease; 
 }
 
@@ -154,14 +154,14 @@
 /* 타임라인 상태 원 (동그라미 공통) */
 #payment-card-layer .payment-card .timeline .timeline-item .circle { 
     position: absolute; 
-    left: -30px; 
+    left: 0px; 
     top: 2px; 
     width: 20px; 
     height: 20px; 
     border-radius: 50%; 
     background: #fff; 
     border: 2px solid #ccc; 
-    z-index: 2; 
+    z-index: 1; 
     transition: all 0.4s ease; 
     display: flex; 
     align-items: center; 
