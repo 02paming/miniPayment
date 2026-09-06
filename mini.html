@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>결제 수단 선택</title>
+    <style>
+/* 탭 버튼 스타일 */
+.tab-button {
+    padding: 10px 20px;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    background-color: #f1f1f1;
+}
+/* 활성화된 버튼 스타일 */
+.tab-button.active {
+    background-color: #333;
+    color: #fff;
+    font-weight: bold;
+}
+/* 결제 내용 상자 스타일 */
+.payment-content {
+    display: none; /* ⭐️ 처음에는 모든 결제창을 숨깁니다 */
+    padding: 20px;
+    border: 1px solid #ccc;
+    margin-top: 10px;
+}
+/* ⭐️ active 클래스가 붙은 결제창만 화면에 보여줍니다 */
+.payment-content.active {
+    display: block; 
+}
+
+
+
+/*기존에 body로 했던 스타일인데 다른 화면단도 건드리는 태그이기때문에 div를 하나파서 진행*/
+
+/* 뒤로가기 버튼 배치를 위해 부모 카드 박스에 relative 기준점 선언 */
+#payment-card-layer .payment-card {
+    position: relative !important;
+}
+
+/* 뒤로가기 버튼 디자인 */
+#payment-card-layer .payment-card .btn-back {
+    position: absolute !important;
+    top: 26px !important;    /* 타이틀 높이와 균형감 있게 맞춘 상단 여백 */
+    left: 24px !important;   /* 카드 좌측 정렬 여백 */
+    
+    background: none !important;
+    border: none !important;
+    font-size: 1.4rem !important; /* 화살표 크기 */
+    font-weight: 500 !important;
+    color: #888888 !important;   /* 너무 튀지 않는 은은한 회색 */
+    cursor: pointer !important;
+    padding: 4px 8px !important;
+    border-radius: 6px !important;
+    transition: all 0.2s ease !important;
+    line-height: 1 !important;
+}
+
+/* 마우스 올렸을 때 효과 */
+#payment-card-layer .payment-card .btn-back:hover {
+    color: #333333 !important;       /* 글자색을 진하게 */
+    background-color: #f1f5f9 !important; /* 살짝 흐릿한 배경 생성 */
+}
+
+
+
+/* 1. 최외곽 배경 레이어: 다른 화면에 피해가 없도록 fixed로 띄우고 정중앙 강제 배치 */
+#payment-card-layer {
+    /* 기존 레이아웃 흐름을 완전히 벗어나 독립된 레이어로 띄웁니다 */
+    position: fixed !important; 
+    top: 0 !important;
+    left: 0 !important;
+    
+    /* 전체 화면 크기만큼 레이어 확보 */
+    width: 100vw !important;
+    height: 100vh !important;
+    
+    /* 배경색 지정 */
+    background-color: #f4f6f9 !important;
+    
+    /* 오직 이 레이어 내부(결제창 카드)만 정중앙으로 정렬 */
+
+    justify-content: center !important; /* 가로 정중앙 */
+    align-items: center !important;     /* 세로 정중앙 */
+    
+    /* 다른 요소보다 무조건 위에 뜨도록 보장 */
+    z-index: 9999 !important; 
+}
+
+/* 2. 내부 흰색 결제 카드 상자 (기존 리셋 스타일 통합) */
+#payment-card-layer .payment-card { 
+    /* * 리셋을 쓰지 않으므로 이 박스 내부에서만 padding/border가 깨지지 않게 설정 */
+    box-sizing: border-box !important; 
+    
+    background: #ffffff; 
+    width: 400px; 
+    padding: 30px; 
+    border-radius: 16px; 
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05); 
+    text-align: center; 
+}
+
+/* 3. 내부 모든 자식 요소들의 padding, margin 초기화 (* 대체) */
+#payment-card-layer .payment-card *,
+#payment-card-layer #emailModal * ,
+#payment-cart-layer #FailModal * {
+    box-sizing: border-box !important;
+    margin: 0;
+    padding: 0;
+}
+
+/* 카드 상단 타이틀 */
+#payment-card-layer .payment-card .card-title { 
+    font-size: 1.2rem; 
+    font-weight: bold; 
+    color: #333; 
+    margin-bottom: 30px; 
+}
+
+/* 타임라인 레이아웃 컨테이너 */
+#payment-card-layer .payment-card .timeline { 
+    position: relative; 
+    max-width: 300px; 
+    margin: 0 auto 30px auto; 
+    padding-left: 30px; 
+    text-align: left; 
+}
+
+/* 세로 기둥 선 (::before 가상 요소) */
+#payment-card-layer .payment-card .timeline::before { 
+    content: ''; 
+    position: absolute; 
+    left: 9px; 
+    top: 5px; 
+    width: 2px; 
+    height: calc(100% - 30px); 
+    background: #e0e0e0; 
+    z-index: 1; 
+}
+
+/* 타임라인 개별 아이템 기본 상태 */
+#payment-card-layer .payment-card .timeline .timeline-item { 
+    position: relative; 
+    margin-bottom: 35px; 
+    opacity: 0.4; 
+    transition: all 0.4s ease; 
+}
+
+/* 활성화 상태 (.active) */
+#payment-card-layer .payment-card .timeline .timeline-item.active { 
+    opacity: 1; 
+}
+
+/* 타임라인 상태 원 (동그라미 공통) */
+#payment-card-layer .payment-card .timeline .timeline-item .circle { 
+    position: absolute; 
+    left: -30px; 
+    top: 2px; 
+    width: 20px; 
+    height: 20px; 
+    border-radius: 50%; 
+    background: #fff; 
+    border: 2px solid #ccc; 
+    z-index: 2; 
+    transition: all 0.4s ease; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    font-size: 11px; 
+    color: transparent; 
+}
+
+/* 진행 중 상태 애니메이션 불빛 (.loading) */
+#payment-card-layer .payment-card .timeline .timeline-item.loading .circle { 
+    border-color: #3b82f6; 
+    background: #e0f2fe; 
+    animation: paymentPulse 1.5s infinite; 
+}
+
+/* 완료 상태 초록색 체크 불빛 (.success) */
+#payment-card-layer .payment-card .timeline .timeline-item.success .circle { 
+    border-color: #10b981; 
+    background: #10b981; 
+    color: white !important; 
+}
+
+/*실패 상태 빨간색 X 에러 불빛 (.error) */
+#payment-card-layer .payment-card .timeline .timeline-item.error .circle { 
+    border-color: #ef4444; 
+    background: #ef4444; 
+    color: white !important; 
+    animation: paymentShake 0.4s ease-in-out; /* 진동 애니메이션 선택사항 */
+}
+
+@keyframes paymentShake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+}
+
+/* 텍스트 스타일 */
+#payment-card-layer .payment-card .timeline .timeline-item .step-title { 
+    font-size: 0.95rem; 
+    font-weight: 600; 
+    color: #444; 
+    margin-bottom: 2px; 
+}
+#payment-card-layer .payment-card .timeline .timeline-item .step-desc { 
+    font-size: 0.8rem; 
+    color: #888; 
+}
+
+/* 결제 시작 버튼 */
+#startBtn { 
+    display: block !important;    /* 찌부되는 현상을 막기 위해 블록 요소로 강제 지정 */
+    width: 100% !important;       /* 카드 가로폭에 꽉 차게 설정 */
+    box-sizing: border-box !important; /* 패딩이 박스 크기를 벗어나지 않게 설정 */
+    
+    background: #3b82f6; 
+    color: white; 
+    border: none; 
+    padding: 14px 24px !important; /* 위아래 패딩을 살짝 늘려 터치하기 편하게 수정 */
+    border-radius: 8px; 
+    font-weight: bold; 
+    cursor: pointer; 
+    font-size: 1rem; 
+    
+    margin-top: 25px !important;  /* 타임라인 마지막 글씨와 버튼 사이의 여백 확보 */
+    transition: background 0.2s; 
+}
+#startBtn:hover { 
+    background: #2563eb; 
+}
+#startBtn:disabled { 
+    background: #cbd5e1; 
+    cursor: not-allowed; 
+}
+
+
+/* ==========================================================================
+    커스텀 실패 알럿 모달 영역
+   ========================================================================== */
+/* 실패 모달 배경 레이어 초기 상태 */
+#payment-card-layer #FailModal.modal-overlay { 
+    position: fixed; 
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%; 
+    background: rgba(0,0,0,0.4); 
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    opacity: 0; 
+    pointer-events: none; 
+    transition: opacity 0.3s ease; 
+    z-index: 10000; 
+}
+
+/* 활성화 상태 (.show 클래스가 붙었을 때) */
+#payment-card-layer #FailModal.modal-overlay.show { 
+    opacity: 1; 
+    pointer-events: auto; 
+}
+
+/* 실패 모달 콘텐츠 박스 기본 상태 (축소) */
+#payment-card-layer #FailModal .modal-content { 
+    background: white; 
+    padding: 25px; 
+    border-radius: 12px; 
+    width: 320px; 
+    text-align: center; 
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
+    transform: scale(0.8); 
+    transition: transform 0.3s ease; 
+}
+
+/* 활성화 상태일 때 팝업 애니메이션 (확대) */
+#payment-card-layer #FailModal.modal-overlay.show .modal-content { 
+    transform: scale(1); 
+}
+
+/* 내부 요소 스타일 */
+#payment-card-layer #FailModal .modal-content .modal-icon { 
+    font-size: 2.5rem; 
+    margin-bottom: 10px; 
+    color: #ef4444; /* 실패 아이콘(X) 색상을 빨간색으로 지정 */
+}
+
+#payment-card-layer #FailModal .modal-content .modal-text { 
+    font-size: 1rem; 
+    font-weight: bold; 
+    color: #333; 
+    margin-bottom: 20px; 
+    line-height: 1.4; 
+}
+
+/* '메인으로' 실패 확인 버튼 (빨간색 계열 테마) */
+#payment-card-layer #FailModal .modal-content .btn-modal { 
+    background: #ef4444; 
+    color: white; 
+    border: none; 
+    padding: 10px 20px; 
+    border-radius: 6px; 
+    font-weight: bold; 
+    cursor: pointer; 
+    width: 100%; 
+    transition: background 0.2s;
+}
+
+/* 버튼 호버 효과 */
+#payment-card-layer #FailModal .modal-content .btn-modal:hover {
+    background: #dc2626;
+}
+
+/* ==========================================================================
+                        커스텀 이메일 알럿 모달 영역
+   ========================================================================== */
+#payment-card-layer #emailModal.modal-overlay { 
+    position: fixed; 
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%; 
+    background: rgba(0,0,0,0.4); 
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    opacity: 0; 
+    pointer-events: none; 
+    transition: opacity 0.3s ease; 
+    z-index: 10000; 
+}
+
+#payment-card-layer #emailModal.modal-overlay.show { 
+    opacity: 1; 
+    pointer-events: auto; 
+}
+
+#payment-card-layer #emailModal .modal-content { 
+    background: white; 
+    padding: 25px; 
+    border-radius: 12px; 
+    width: 320px; 
+    text-align: center; 
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
+    transform: scale(0.8); 
+    transition: transform 0.3s ease; 
+}
+
+#payment-card-layer #emailModal.modal-overlay.show .modal-content { 
+    transform: scale(1); 
+}
+
+#payment-card-layer #emailModal .modal-content .modal-icon { font-size: 2.5rem; margin-bottom: 10px; }
+#payment-card-layer #emailModal .modal-content .modal-text { font-size: 1rem; font-weight: bold; color: #333; margin-bottom: 20px; line-height: 1.4; }
+#payment-card-layer #emailModal .modal-content .btn-modal { background: #10b981; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; }
+
+/* ==========================================================================
+   5. 애니메이션 정의
+   ========================================================================== */
+@keyframes paymentPulse {
+    0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+    70% { box-shadow: 0 0 0 8px rgba(59, 130, 246, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+}
+
+    </style>
+
+    <!-- 결제 타임라인 프로세스 스크립트 -->
+    <script>
+function resetAllPayments() {
+
+    // 1. 백그라운드에서 돌고 있는 모든 타이머 강제 종료
+    activeTimers.forEach(timerId => clearTimeout(timerId));
+    activeTimers = []; // 배열 비우기
+    
+    // 2. CSS 및 UI 초기화 
+    document.querySelectorAll('.timeline-item').forEach(item => {
+        item.className = 'timeline-item';
+        item.querySelector(".circle").textContent = "✓";
+    });
+    document.querySelector("#step-desc-1").textContent = "기본 결제 입력값을 검증합니다.";
+    document.querySelector("#step-desc-3").textContent = "카드사 대행 모듈 결제를 승인합니다.";
+    console.log("[초기화] 이전 진행 건들과 UI를 전부 초기화했습니다.");
+}
+     // 비동기 처리를 위한 딜레이 함수 설정 (밀리초 단위)
+    let activeTimers = [];
+
+// 타이머를 등록하는 delay 함수
+function delay(ms) {
+    return new Promise((resolve) => {
+        const timerId = setTimeout(() => {
+            // 타이머가 정상 종료되면 배열에서 삭제
+            activeTimers = activeTimers.filter(id => id != timerId); //참인걸로만 재배열(최신화함)
+            resolve();
+        }, ms);
+
+        // 생성된 타이머 ID를 배열에 기록
+        activeTimers.push(timerId);
+    });
+}
+
+// promise를 끝낼수잇는 일종의 리모컨장치를 전역으로 뺌
+let resolveModalPromise; 
+
+function main() {
+    goBackPage();
+}
+
+    //성공 4단계후 이메일발송 모달
+        // 모달창을 띄우고 사용자가 누를 때까지 Promise를 유지시켜 멈추게 하는 함수
+        function showEmailModal() {
+            document.getElementById('emailModal').classList.add('show');
+            return new Promise(resolve => {
+                resolveModalPromise = resolve; // 모달 버튼을 누르면 resolve가 호출되게 전역 저장
+            });
+        }
+
+        // 모달에서 사용자가 [확인] 버튼을 눌렀을 때
+        function confirmEmailAlert() {
+            document.getElementById('emailModal').classList.remove('show');
+            startBtn.disabled = false; 
+            
+            if (resolveModalPromise) { //리모컨이 잘세팅이됨
+                resolveModalPromise(); // 일시정지 상태였던 async 함수를 깨움
+            }
+        }
+
+    
+    //실패 모달창 띄운뒤 확인버튼눌럿을때 뒤로가기 효과
+        function showFailureModal(error) {
+            // console.log(error);
+            document.getElementById("FailModal-text").textContent = error;
+            document.getElementById('FailModal').classList.add('show');
+            return new Promise(resolve => {
+                resolveModalPromise = resolve;  //실패나 성공 둘다 될일은 없으므로 변수 재활용
+            });
+        }
+
+        function confirmFailAlert(){
+            document.getElementById('FailModal').classList.remove('show');
+            goBackPage();
+            if (resolveModalPromise) { 
+                resolveModalPromise(); 
+            }
+        }
+        
+    </script>
+
+    <script>
+//미리 전역으로 세팅
+document.addEventListener("DOMContentLoaded",() => {
+
+    const step1 = document.getElementById('step1');
+    const step2 = document.getElementById('step2');
+    const step3 = document.getElementById('step3');
+    const step4 = document.getElementById('step4');
+
+    const startBtn = document.getElementById('startBtn');
+    startBtn.disabled = true; 
+
+    //메일폼(태그)를 받아옴 (템플릿)
+    const mailform = document.getElementById('mailform')
+    const mailformClone = mailform.content.cloneNode(true);
+
+    
+    // 결제 게이트웨이 시스템 구현
+    class PaymentProcess {
+        constructor(amount,user) {
+            this.amount = amount; //결제금액
+            this.user = user; //사용자 이름
+            this.status = "PENDING"; //결제 상태
+        }
+
+        //전체 결제 흐름을 관리하는 기능
+        async processPayment() {
+            //구분선과 요청 시작 메시지 출력
+            //try catch 사용
+            //구분선 출력
+            console.log('=============================================================')
+            console.log(`[시작] ${this.user}님의 ${this.amount.toLocaleString()}원 결제 요청`)
+            try{
+                await this.validdateInputs()
+                await this.checkUserBalanceOrLimit()
+                await this.executeTransaction()
+                await this.sendReceipt()
+                this.status = 'COMPLETED';
+                console.log('[완료] 결제가 성공적으로 처리되었습니다.')
+
+            }catch(e){
+                this.status = 'FAILED';
+                console.error(`[오류] 결제 실패: ${e.message}`); 
+
+                if(e.step){
+                    const errorStepTag = document.getElementById(e.step);
+                    errorStepTag.classList.remove('loading'); 
+                    errorStepTag.classList.add('error');  
+                    
+                    const circleNode = errorStepTag.querySelector('.circle');
+                    if (circleNode) circleNode.textContent = "❌"; 
+                }
+
+                await showFailureModal(e.message);
+            }
+
+            console.log('거래기록 ▼\n')
+            this.logTranscation()
+            //구분선 출력
+            console.log('==============================================================')
+        }
+
+        //입력값 검증
+        async validdateInputs() {
+            //금액(0원 이하 불가)과 사용자 정보 유무 검사
+            //2초 동기
+            
+            step1.classList.add('active', 'loading');
+            await delay(2000);
+
+            if(this.amount <= 0 || this.user == ""){
+                const err = new Error("입력값 오류입니다!!!");
+                err.step = "step1"; 
+                throw err;
+            }
+                console.log('1. 기본 입력값 검증 완료.');
+            
+        }
+
+        //한도/잔액 확인
+        async checkUserBalanceOrLimit() {
+            //기본 계정 한도 검사 메시지 출력
+            
+            step2.classList.add('active', 'loading');
+            await delay(2000);
+
+            //조건넣을수있으면 추가
+
+            console.log('2. 기본 계정 한도 검사 완료.')
+            
+            step2.classList.remove('loading');
+            step2.classList.add('success');
+        }
+        
+        //결제 승인 요청
+        async executeTransaction() {
+            //공통 PG 승인 메시지 출력
+            
+            step3.classList.add('active', 'loading');
+            await delay(2000);
+
+            console.log('3. 공통 PG 승인 모듈을 통한 결제 완료')
+
+        }
+
+        logTranscation() {
+            //현재 상태(status)와 금액을 기록하는 메시지를 출력
+            console.log(`[로그] 결제 상태 : ${this.status}, 금액 : ${this.amount}`)
+        }
+
+        //영수증 발급
+        async sendReceipt() {
+            //기본 이메일 영수증 발급 메시지 출력
+            step4.classList.add('active', 'loading');
+            await delay(2000);
+            
+            console.log("4. 최종 결제 완료 및 이메일발송대기");
+            step4.classList.remove('loading');
+            step4.classList.add('success');
+
+            //이 시점에서 이메일발송이 fetch가 이루어져야함
+            const title = '영수증입니다.'
+            const content = mailformClone.querySelector("#table").outerHTML
+
+
+            // Node.js 서버의 /send-email 주소로 데이터 전송
+            const response = await fetch('/send-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title, content })
+            });
+
+            // const result = await response.json();
+            // alert(result.message);
+
+            await showEmailModal(); //모달창띄워서 실제 이메일보내기작업하기
+            
+            console.log(`4-1 기본 이메일 영수증이 ${this.user}님에게 발송되었습니다.`)
+
+        }
+            //성공 시 status를 'COMPLETED' 로 변경하고 완료 메시지 출력
+            //예외 발생 시 status를 'FAILED'로 변경하고 오류 메시지 출력
+            //성공/실패 여부와 관계없이 마무리로 거래 기록(logTranscation())을 남기고 구분선 출력
+
+
+    }
+
+    class CreditCardPayment extends PaymentProcess{
+        constructor(amount,user,cardNumber,installments) {
+            super(amount,user);
+            this.cardNumber = cardNumber;
+            this.installments = installments;
+        }
+
+        async validdateInputs(){
+            await super.validdateInputs();
+            
+            if(!this.cardNumber || this.cardNumber.length != 16){
+                //실패시 빨간불x 표시 띄워야함
+                const err =  new Error("결제 실패: 유효하지 않은 카드번호입니다.");
+
+                err.step = "step1"; 
+                throw err;
+            }else{
+                //console.log(this.cardNumber)
+                const result = [];
+        
+                for (let i = 0; i < this.cardNumber.length; i += 4) {
+                    if (!i) {
+                        
+                        result.push(this.cardNumber.slice(0, 4));
+                    } else {
+                        
+                        result.push('****');
+                    }
+                }
+                // console.log(result);
+                // console.log(result.join('-'));
+                
+                step1.querySelector(".step-desc").textContent = `▶ [신용카드] 카드번호 (${result.join('-')})`;
+                
+                step1.classList.remove('loading');
+                step1.classList.add('success');
+
+                
+            }
+            
+        }
+        async executeTransaction() {
+            await super.executeTransaction();
+            if(this.installments <= 0){
+                console.log('[신용카드] 일시불 승인 완료')
+                step3.querySelector(".step-desc").textContent = `▶ [신용카드] 일시불 승인 완료`;
+                step3.classList.remove('loading');
+                step3.classList.add('success');
+            }else{
+                console.log(`   ▶ [신용카드] ${this.installments}개월 할부 승인 완료`)
+                step3.querySelector(".step-desc").textContent = `▶ [신용카드] ${this.installments}개월 할부 승인 완료`;
+                step3.classList.remove('loading');
+                step3.classList.add('success');
+            }
+        }
+        
+
+        //입력값 검증 : 기존 기본 검증을 먼저 진행한 뒤, 카드번호가 없거나 16자리가 아닌경우 에러를 발생. 검증 성공 시 앞
+        //4자리만 노출하는 마스킹 메시지를 출력
+        //결제 승인 : 기존 공통 PG 승인을 먼저 진행한 뒤, 할부 개월 수에 따라 일시불 또는 할부 승인 메시지 추가 출력
+    }
+
+    class KakaoPayPayment extends PaymentProcess{
+        constructor(amount,user,pointsTouse) {
+            super(amount,user);
+            this.pointsTouse = pointsTouse; //기본값 0, 사용포인트
+        }
+
+        checkUserBalanceOrLimit(){
+            super.checkUserBalanceOrLimit()
+            if(this.amount > 100000){
+                throw new Error('한도 초과입니다.');
+            }
+            if(this.amount < this.pointsTouse){
+                throw new Error("사용할 포인트가 결제금액보다 많습니다.");
+            }else{
+                this.finalAmount = this.amount - this.pointsTouse;
+                console.log(`   ▶ [카카오페이] 포인트 ${this.pointsTouse}P 사용 (최종 결제액 : ${this.finalAmount}원)`)
+            }
+        }
+
+        sendReceipt(){
+            console.log(`   ▶ [카카오페이] 카카오톡 알림톡으로 알림 메시지가 발송되었습니다.`);
+        }
+
+        logTranscation() {
+            //현재 상태(status)와 금액을 기록하는 메시지를 출력(포인트쓴 이후 최종 결제금액 로그)
+            console.log(`[로그] 결제 상태 : ${this.status}, 금액 : ${this.finalAmount}`)
+        }
+
+
+        
+        //한도/잔액 확인 : 기존 기본 검사 먼저 진행한 뒤 사용 포인트가 결제 금액보다 크면 에러를 발생시킴.
+        //정상인 경우 포인터를 차감한 최종 결제액을 계산해 출력
+        //영수증 발급 : 기존 이메일 발급 방식 대신 카카오톡 알림톡으로 메시지가 발송되었다는 안내만 단독으로 출력
+    }
+
+    // const mySecCreditCardPayment = new CreditCardPayment(30000,"성광","12345678123453123678",3);
+
+    // myCreditCardPayment.processPayment();
+    // myKakaoPayPayment.processPayment();
+    // mySecCreditCardPayment.processPayment();
+
+
+
+        const p = document.querySelector('p');
+
+        const credit_amount = document.getElementById('credit_amount');
+        const credit_name = document.getElementById('credit_name');
+        const cardNumber = document.getElementById('cardNumber');
+        const installments = document.getElementById('installments');
+        const credit_button = document.querySelector('#sendBtn_credit');
+
+    //신용카드 버전
+    credit_button.addEventListener('click', async () => {
+
+            const inputForm = document.querySelector("#inputForm");
+            const paymentCard = document.querySelector('#payment-card-layer');
+
+            const my2CreditCardPayment = new CreditCardPayment(Number(credit_amount.value),credit_name.value,cardNumber.value,Number(installments.value));
+            //아직 setter getter없음
+            //객체의 정보를 가지고 영수증내용을 바꾸어주어야함(우선 금액,카드번호,할부개월값을 가져오기)
+
+            // 카드 번호 반영 (예: 뒤 4자리만 출력)
+            const displayCardNum = my2CreditCardPayment.cardNumber.toString().slice(-4);
+            // console.log(displayCardNum)
+            mailformClone.getElementById("crd_card_number").textContent = displayCardNum;
+
+            // 결제 금액 반영 (천단위 콤마 포맷팅 포함)
+            const formattedAmount = my2CreditCardPayment.amount.toLocaleString() + "원";
+            // console.log(formattedAmount)
+            mailformClone.getElementById("crd_total_amount").textContent = formattedAmount;
+            
+            // 할부 개월 반영
+            mailformClone.getElementById("crd_installments").textContent = Number(installments.value);
+            // console.log(Number(installments.value))
+
+            //결제 프로세스 타임라인 상단 가격표시
+            const cardTitle = document.querySelector(".card-title");
+            cardTitle.textContent = `💳 결제 요청 `;
+
+            inputForm.style.display = "none";
+            paymentCard.style.display = "flex";
+            
+
+        my2CreditCardPayment.processPayment();
+
+        // const title = document.getElementById('mailTitle').value;
+        // const content = document.getElementById('mailContent').value;
+        
+    }); 
+
+
+        //카카오페이버전
+        const kakao_amount = document.getElementById('kakao_amount');
+        const kakao_name = document.getElementById('kakao_name');
+        const kakao_point = document.getElementById('kakao_point');
+        const kakao_button = document.querySelector('#sendBtn_kakao');
+        
+        kakao_button.addEventListener('click', async () => {
+
+            const my2KakaoPayPayment = new KakaoPayPayment(Number(kakao_amount.value),kakao_name.value,kakao_point.value);
+            //아직 setter getter없음
+            //객체의 정보를 가지고 영수증내용을 바꾸어주어야함(우선 금액,포인트값을 가져오기)
+
+            // console.log(cardNumber)
+            // console.log(cardNumber.value);
+            my2KakaoPayPayment.processPayment();
+
+            const amount = kakao_amount.value;
+            const name = kakao_name.value;
+            const points = kakao_point.value;
+
+            // 객체로 묶어서 세션 스토리지에 저장
+            const paymentData = { amount, name, points };
+            sessionStorage.setItem('pendingPayment', JSON.stringify(paymentData));
+
+
+            //팝업으로 결제창 띄우기
+            const popupWidth = 500;
+            const popupHeight = 600;
+            const left = (window.screen.width / 2) - (popupWidth / 2);
+            const top = (window.screen.height / 2) - (popupHeight / 2);
+
+            // 3. window.open으로 payment.html을 팝업으로 열기
+            const popupWindow = window.open(
+                '/kakao-login', 
+                'KakaoPaymentPopup', 
+                `width=${popupWidth}, height=${popupHeight}, left=${left}, top=${top}, scrollbars=yes, resizable=no`
+            );
+
+        }); 
+    })
+
+    </script>
+
+</head>
+<body>
+
+<!-- 메일폼 안보이는 곳-->
+    <template id="mailform">
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f4f4f4; padding: 20px 0;" id="table">
+            <tr>
+                <td align="center">
+                    
+                    <!-- 영수증 박스 (최대 가로폭 600px 권장) -->
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="max-width: 600px; background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow: hidden;">
+                        
+                        <!-- 헤더 영역 -->
+                        <tr>
+                            <td style="padding: 40px 30px; background-color: #1e293b; text-align: center;">
+                                <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: bold; letter-spacing: -0.5px;">결제가 완료되었습니다</h1>
+                                <p style="margin: 10px 0 0 0; color: #94a3b8; font-size: 14px;">소중한 구매에 감사드립니다.</p>
+                            </td>
+                        </tr>
+
+                        <!-- 주문 정보 요약 -->
+                        <tr>
+                            <td style="padding: 30px 30px 20px 30px;">
+                                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                    <tr>
+                                        <td style="font-size: 14px; color: #64748b; line-height: 1.6;">
+                                            <strong>주문 번호:</strong> #ORD-20260806<br>
+                                            <strong>결제 일시:</strong> 2026-08-06 10:50
+                                        </td>
+                                        <td align="right" style="font-size: 14px; color: #64748b; line-height: 1.6; vertical-align: bottom;">
+                                            <strong>결제 수단:</strong> 신용카드(<span id="crd_card_number">1234</span>)<br>
+                                            <strong>할부 : <span id="crd_installments"></span>개월</strong>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+
+                        <!-- 구분선 -->
+                        <tr>
+                            <td style="padding: 0 30px;">
+                                <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 0;">
+                            </td>
+                        </tr>
+
+                        <!-- 상품 리스트 영역 -->
+                        <tr>
+                            <td style="padding: 20px 30px;">
+                                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                    <!-- 헤더 -->
+                                    <tr style="font-size: 13px; color: #94a3b8; font-weight: bold;">
+                                        <td style="padding: 10px 0;">상품명</td>
+                                        <td align="center" style="padding: 10px 0; width: 50px;">수량</td>
+                                        <td align="right" style="padding: 10px 0; width: 100px;">금액</td>
+                                    </tr>
+                                    <!-- 상품 1 -->
+                                    <tr style="font-size: 15px; color: #334155; border-bottom: 1px solid #f1f5f9;">
+                                        <td style="padding: 15px 0; font-weight: 500;">프리미엄 요금제 (1개월 사용권)</td>
+                                        <td align="center" style="padding: 15px 0; color: #64748b;">1</td>
+                                        <td align="right" style="padding: 15px 0; font-weight: 600;">29,000원</td>
+                                    </tr>
+                                    <!-- 상품 2 (필요시 추가) -->
+                                    <!-- <tr style="font-size: 15px; color: #334155;">
+                                        <td style="padding: 15px 0; font-weight: 500;">부가서비스 옵션 추가</td>
+                                        <td align="center" style="padding: 15px 0; color: #64748b;">1</td>
+                                        <td align="right" style="padding: 15px 0; font-weight: 600;">3,300원</td>
+                                    </tr> -->
+                                </table>
+                            </td>
+                        </tr>
+
+                        <!-- 구분선 -->
+                        <tr>
+                            <td style="padding: 0 30px;">
+                                <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 0;">
+                            </td>
+                        </tr>
+
+                        <!-- 최종 금액 합계 -->
+                        <tr>
+                            <td style="padding: 20px 30px 40px 30px;">
+                                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f8fafc; border-radius: 6px; padding: 20px;">
+                                    <tr style="font-size: 18px; color: #0f172a; font-weight: bold;">
+                                        <td>총 결제금액</td>
+                                        <td align="right" style= "color: #2563eb;"><span id="crd_total_amount">32,300원</span></td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+
+                        <!-- 푸터 영역 -->
+                        <tr>
+                            <td style="padding: 30px; background-color: #f1f5f9; text-align: center; font-size: 12px; color: #94a3b8; line-height: 1.5;">
+                                본 메일은 발신전용입니다. 문의사항은 고객센터를 이용해주세요.<br>
+                                주식회사 코퍼레이션 | 대표자: 홍길동 | 사업자번호: 123-45-67890<br>
+                                © 2026 Corporation. All rights reserved.
+                            </td>
+                        </tr>
+
+                    </table>
+
+                </td>
+            </tr>
+        </table>
+    </template>
+    <div id="template"></div>
+
+
+
+<!-- 인풋폼 -->
+    <!-- 1. 상단 결제 수단 선택 버튼 (데이터 속성 data-target 사용) -->
+    <div id="inputForm">
+        <div>
+            <button class="tab-button active" data-target="card-form">신용카드</button>
+            <button class="tab-button" data-target="kakao-form">카카오페이</button>
+        </div>
+
+        <!-- 2. 하단 결제 세부 내용 태그들 -->
+        <!-- 신용카드 입력창 (처음엔 active가 있어서 보임) -->
+        <div style="text-align: right;"><a href="/loginPage">로그인</a></div>
+        
+        <div id="card-form" class="payment-content active">
+            <h3>💳 신용카드 결제창</h3>
+            <p>신용카드 결제틀짜는곳</p>
+            <p>
+                <div>
+                    <h1>신용카드</h1>
+                    <input type="text" id="credit_amount">결제금액<br>
+                    <input type="text" id="credit_name">이름<br>
+                    <input type="text" id="cardNumber">카드번호<br> <!--다음에 인풋 4개로 4자리씩 받기-->
+                    <input type="text" id="installments">할부개월
+                    <button value="" type="button" id="sendBtn_credit">요청 하기</button>
+                </div>
+            </p>
+        </div>
+
+        <!-- 카카오페이 안내창 (처음엔 active가 없어서 숨겨짐) -->
+        <div id="kakao-form" class="payment-content">
+            <h3>💛 카카오페이 결제창</h3>
+            <p>카카오페이 QR 코드나 간편 결제 안내 세부 틀을 여기에 짜시면 됩니다.우선 금액을 입력하고 결제하는식으로 </p>
+            <p>
+                <div>
+                    <h1>카카오페이</h1>
+                    <input type="text" id="kakao_amount">결제금액<br>
+                    <input type="text" id="kakao_name">이름<br>
+                    <input type="text" id="kakao_point">포인트사용 <!--추후 잔여포인트 추가-->
+                    <button value="" type="button" id="sendBtn_kakao">요청 하기</button>
+                </div>
+            </p>
+        </div>
+    </div>
+
+<!-- 뒤로가기 기능 -->
+<script>
+function goBackPage() {
+    resetAllPayments();
+    document.getElementById('payment-card-layer').style.display = 'none';
+    document.getElementById('inputForm').style.display = 'block';
+}
+</script>
+    
+<!-- 검증 타임라인단 -->
+<div class="payment-card-wrapper" id="payment-card-layer" style="display: none;">
+    <div class="payment-card">
+        <button class="btn-back" onclick="goBackPage()">←</button> <!-- 뒤로가기 기능 간단한건 인라인속성 이벤트로 --> 
+        
+        <div class="card-title">💳 결제 요청 </div>
+            
+            <!-- 수직 타임라인 구역 -->
+        <div class="timeline">
+            <div class="timeline-item" id="step1">
+                <div class="circle">✓</div>
+                <div class="step-title">1. 입력값 검증</div>
+                <div class="step-desc" id="step-desc-1">기본 결제 입력값을 검증합니다.</div>
+            </div>
+            <div class="timeline-item" id="step2">
+                <div class="circle">✓</div>
+                <div class="step-title">2. 계정 한도 검사</div>
+                <div class="step-desc">결제 가능한 한도를 확인합니다.</div>
+            </div>
+            <div class="timeline-item" id="step3">
+                <div class="circle">✓</div>
+                <div class="step-title">3. PG 승인 요청</div>
+                <div class="step-desc" id="step-desc-3">카드사 대행 모듈 결제를 승인합니다.</div>
+            </div>
+            <div class="timeline-item" id="step4">
+                <div class="circle">✓</div>
+                <div class="step-title">4. 최종 결제 완료</div>
+                <div class="step-desc">결제가 성공적으로 처리되었습니다.</div>
+            </div>
+        </div>
+        <button class="btn-start" id="startBtn" onclick="main()">메인으로</button>
+    </div>
+
+    <!-- 커스텀 이메일 알럿 모달 구조 -->
+    <div class="modal-overlay" id="emailModal">
+        <div class="modal-content">
+            <div class="modal-icon">📧</div>
+            <div class="modal-text">이메일 영수증이<br>최성광님에게 발송되었습니다.</div>
+            <button class="btn-modal" onclick="confirmEmailAlert()">확인</button>
+        </div>
+    </div>
+
+    <!-- 커스텀 실패시 알럿 모달 구조 -->
+    <div class="modal-overlay" id="FailModal">
+        <div class="modal-content">
+            <div class="modal-icon">❌</div>
+            <div class="modal-text" id="FailModal-text">실패!</div>
+            <button class="btn-modal" onclick="confirmFailAlert()">메인으로</button>
+        </div>
+    </div>
+</div>
+
+
+    
+    
+
+
+
+    <!-- 3. 버튼 클릭 시 신용카드와 카카오단을 스위칭하는 자바스크립트 -->
+    <script>
+        
+        const buttons = document.querySelectorAll('.tab-button');
+        const contents = document.querySelectorAll('.payment-content');
+
+        // 각 버튼에 클릭 이벤트 설정
+        const handleTabClick = (e) => {
+            const currentButton = e.target;
+            const targetId = currentButton.getAttribute('data-target');
+
+            // 모든 버튼과 콘텐츠에서 active 클래스 제거
+            buttons.forEach(btn => btn.classList.remove('active'));
+            contents.forEach(content => content.classList.remove('active'));
+
+            // 클릭된 버튼과 해당 콘텐츠에만 active 클래스 추가
+            currentButton.classList.add('active');
+            document.getElementById(targetId).classList.add('active');
+        };
+
+        // 각 버튼에 이벤트 리스너 등록
+        buttons.forEach(button => button.addEventListener('click', handleTabClick));
+    </script>
+
+</body>
+</html>
