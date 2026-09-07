@@ -29,69 +29,50 @@ app.use(express.json()); //이 설정으로 JSON 형태의 요청 바디를 파�
 // 쿠키 설정(웹 브라우저가 보낸 쿠키를  미들웨어를 앱에 적용)
 app.use(cookieParser());
 
+// 세션 미들웨어 설정
+app.use(
+    session({
+        secret: 'my-secret-key-change-this',
+        resave: false,
+        saveUninitialized: false,
+
+        cookie: {
+            httpOnly: true,
+            secure: false
+        }
+    })
+);
+
 // 1. 메인 페이지 GET 요청
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'mini.html'));
 });
 
 
-// 2. 이메일 발송 POST 요청
-app.post('/send-email', (req, res) => {
-    // express.json() 덕분에 req.body에서 바로 데이터를 꺼낼 수 있습니다.
-    const { title, content } = req.body;
-
-    // 네이버 SMTP 발신자 정보 설정
-    const transporter = nodemailer.createTransport({
-        host: 'smtp.naver.com',
-        port: 465,
-        secure: true,
-        auth: {
-            user: '02paming@naver.com', // 내 네이버 이메일 전체 주소
-            pass: '3BBPSMEFPUWJ' // 일반 PW 또는 2단계 인증 시 '앱 비밀번호'
-        }
-    });
-
-    // 메일 내용 설정
-    const mailOptions = {
-        from: '02paming@naver.com', // 보내는 사람 (위 user와 동일)
-        to: 'paming1075@gmail.com', // 테스트 메일을 받아볼 이메일 주소
-        subject: title,
-        html: content
-    };
-
-    // 실제 발송 프로세스 실행
-    transporter.sendMail(mailOptions, (error, info) => {
-        if (error) {
-            console.error('발송 에러 내용:', error);
-            return res.status(500).json({ 
-                success: false, 
-                message: `발송 실패: ${error.message}` 
-            });
-        }
-        
-        console.log('발송 성공 ID:', info.messageId);
-        res.json({ 
-            success: true, 
-            message: '🚀 이메일이 성공적으로 날아갔습니다!' 
-        });
-    });
-});
 
 
 //----------------회원가입-----------------------------------
 
 const FILE_PATH = './users.json'; // 회원 정보가 저장될 파일 경로 //쓰기할때 없으면 새파일 생성함
 // let users = [{ id: "user1", email: "a@a.com" }]; //원래 비워놔야하는데 테스트용 하드코딩 더미
-let users
+let users;
+
 
 // 회원 로그인 페이지
 app.get('/loginPage', (req,res) => {
     res.sendFile(path.join(__dirname,'loginPage.html'));
 })
 
+// 회원가입 이동
 app.get('/signUp', (req,res) => {
     res.sendFile(path.join(__dirname,'signUp.html'));
 })
+
+// 이미계정있을때 로그인페이지로 이동
+app.get('/loginpage', (req,res) => {
+    res.sendFile(path.join(__dirname,'loginpage.html'));
+})
+
 
 
 // 1. DB 대체 함수 node.js 기본내장 fs 활용
@@ -114,7 +95,6 @@ function readUsers() {
     }else{
         users = []
     }
-  
 }
 
 // 파일에 회원 목록 저장하기
@@ -128,8 +108,11 @@ function writeUsers(users) {
 // 2. 회원가입, 로그인 기능 (API)
 // 회원가입
 app.post('/api/signup', (req, res) => {
-  const { id, password, email } = req.body;
-  
+
+    
+    const { id, password, email } = req.body;
+    // console.log(id)
+
   // 1. readUsers()로 기존 유저 목록 불러오기
     readUsers();
   // 2. id 중복 검사
@@ -158,33 +141,84 @@ app.post('/api/signup', (req, res) => {
     }
 });
 
+//로그인후 메인에서 세션검사
+app.get('/api/auth-status', (req, res) => {
+    if (req.session.loginUser) {
+    // 로그인된 상태라면 유저 아이디를 JSON으로 응답
+    res.json({ isLoggedIn: true, user: req.session.loginUser });
+    } else {
+    // 로그인 안 된 상태라면
+    res.json({ isLoggedIn: false });
+    }
+});
+
 // 로그인 
 app.post('/api/login', (req, res) => {
-  const { id, password } = req.body;
+    const { id, password } = req.body;
 
-  // 1. readUsers()로 유저 목록 불러오기
-  readUsers()
-  // 2. id와 password가 일치하는 유저 찾기
-  const loginUser = users.find(user => user.u_id == id && user.u_password == password);
-  if(loginUser){
-    // 3. 일치하면 해당 유저 정보(email 등)를 프론트로 응답
-    res.status(200).json(loginUser);
-  }else{
-    // 4. 실패 시 에러 메시지 응답
-    res.send("로그인 실패!")
-  }
-  
-
+    // 1. readUsers()로 유저 목록 불러오기
+    readUsers()
+    // 2. id와 password가 일치하는 유저 찾기
+    const loginUser = users.find(user => user.u_id == id && user.u_password == password);
+    if(loginUser){
+        // 3. 일치하면 해당 유저 정보를 세션에 저장후 메인화면으로 리다이렉트
+        req.session.loginUser = loginUser;
+        res.redirect("/");
+    }else{
+        // 4. 실패 시 에러 메시지 응답
+        res.send("로그인 실패!")
+    }
 });
 
-// 결제 완료 및 이메일 발송 API
-app.post('/api/payment-success', (req, res) => {
-  const { userId, paymentData } = req.body;
-
-  // 1. readUsers()로 유저 목록 불러와서 userId에 해당하는 유저의 email 찾기
-  // 2. 찾은 email을 수신자로 설정하여 Nodemailer 발송 로직 실행
-  // 3. 이메일 발송 성공 시 프론트로 결과 응답
+// 로그아웃
+app.get('/logout', (req, res) => {
+    req.session.destroy(() => {
+        res.redirect("/");
+    })
 });
+
+// 결제 완료 및 이메일 발송 API (이메일 발송 POST 요청)
+app.post('/send-email', (req, res) => {
+    // express.json() 덕분에 req.body에서 바로 데이터를 꺼낼 수 있습니다.
+    const { title, content , email} = req.body;
+
+    // 네이버 SMTP 발신자 정보 설정
+    const transporter = nodemailer.createTransport({
+        host: 'smtp.naver.com',
+        port: 465,
+        secure: true,
+        auth: {
+            user: '02paming@naver.com', // 내 네이버 이메일 전체 주소
+            pass: '3BBPSMEFPUWJ' // 일반 PW 또는 2단계 인증 시 '앱 비밀번호'
+        }
+    });
+
+    // 메일 내용 설정
+    const mailOptions = {
+        from: '02paming@naver.com', // 보내는 사람 (위 user와 동일)
+        to: email, // 테스트 메일을 받아볼 이메일 주소
+        subject: title,
+        html: content
+    };
+
+    // 실제 발송 프로세스 실행
+    transporter.sendMail(mailOptions, (error, info) => {
+        if (error) {
+            console.error('발송 에러 내용:', error);
+            return res.status(500).json({ 
+                success: false, 
+                message: `발송 실패: ${error.message}` 
+            });
+        }
+        
+        console.log('발송 성공 ID:', info.messageId);
+        res.json({ 
+            success: true, 
+            message: '🚀 이메일이 성공적으로 날아갔습니다!' 
+        });
+    });
+});
+
 
 //----------------------------------------------------------------------------------------------------------------------------
 
@@ -197,21 +231,6 @@ const CLIENT_SECRET = '5qhX8lLtRyIrs3vKAYa27b4chdNTgBSx';
 
 // 카카오 개발자 콘솔에 등록한 Redirect URI
 const REDIRECT_URI = 'http://localhost:3000/auth/kakao/callback';
-
-
-app.use(
-    session({
-        secret: 'my-secret-key-change-this',
-        resave: false,
-        saveUninitialized: false,
-
-        cookie: {
-            httpOnly: true,
-            secure: false
-        }
-    })
-);
-
 
 // 프론트 파일 제공
 app.use(express.static(path.join(__dirname, 'public')));

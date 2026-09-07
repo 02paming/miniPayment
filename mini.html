@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>결제 수단 선택</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <style>
 /* 탭 버튼 스타일 */
 .tab-button {
@@ -367,90 +368,91 @@
 
     </style>
 
-    <!-- 결제 타임라인 프로세스 스크립트 -->
-    <script>
-function resetAllPayments() {
+<!-- 결제 타임라인 프로세스 스크립트 -->
+<script>
+    function resetAllPayments() {
 
-    // 1. 백그라운드에서 돌고 있는 모든 타이머 강제 종료
-    activeTimers.forEach(timerId => clearTimeout(timerId));
-    activeTimers = []; // 배열 비우기
-    
-    // 2. CSS 및 UI 초기화 
-    document.querySelectorAll('.timeline-item').forEach(item => {
-        item.className = 'timeline-item';
-        item.querySelector(".circle").textContent = "✓";
-    });
-    document.querySelector("#step-desc-1").textContent = "기본 결제 입력값을 검증합니다.";
-    document.querySelector("#step-desc-3").textContent = "카드사 대행 모듈 결제를 승인합니다.";
-    console.log("[초기화] 이전 진행 건들과 UI를 전부 초기화했습니다.");
-}
-     // 비동기 처리를 위한 딜레이 함수 설정 (밀리초 단위)
-    let activeTimers = [];
+        // 1. 백그라운드에서 돌고 있는 모든 타이머 강제 종료
+        activeTimers.forEach(timerId => clearTimeout(timerId));
+        activeTimers = []; // 배열 비우기
+        
+        // 2. CSS 및 UI 초기화 
+        document.querySelectorAll('.timeline-item').forEach(item => {
+            item.className = 'timeline-item';
+            item.querySelector(".circle").textContent = "✓";
+        });
+        document.querySelector("#step-desc-1").textContent = "기본 결제 입력값을 검증합니다.";
+        document.querySelector("#step-desc-3").textContent = "카드사 대행 모듈 결제를 승인합니다.";
+        console.log("[초기화] 이전 진행 건들과 UI를 전부 초기화했습니다.");
+    }
+        // 비동기 처리를 위한 딜레이 함수 설정 (밀리초 단위)
+        let activeTimers = [];
 
-// 타이머를 등록하는 delay 함수
-function delay(ms) {
-    return new Promise((resolve) => {
-        const timerId = setTimeout(() => {
-            // 타이머가 정상 종료되면 배열에서 삭제
-            activeTimers = activeTimers.filter(id => id != timerId); //참인걸로만 재배열(최신화함)
-            resolve();
-        }, ms);
+    // 타이머를 등록하는 delay 함수
+    function delay(ms) {
+        return new Promise((resolve) => {
+            const timerId = setTimeout(() => {
+                // 타이머가 정상 종료되면 배열에서 삭제
+                activeTimers = activeTimers.filter(id => id != timerId); //참인걸로만 재배열(최신화함)
+                resolve();
+            }, ms);
 
-        // 생성된 타이머 ID를 배열에 기록
-        activeTimers.push(timerId);
-    });
-}
+            // 생성된 타이머 ID를 배열에 기록
+            activeTimers.push(timerId);
+        });
+    }
 
-// promise를 끝낼수잇는 일종의 리모컨장치를 전역으로 뺌
-let resolveModalPromise; 
+    // promise를 끝낼수잇는 일종의 리모컨장치를 전역으로 뺌
+    let resolveModalPromise; 
 
-function main() {
-    goBackPage();
-}
+    function main() {
+        goBackPage();
+    }
 
     //성공 4단계후 이메일발송 모달
-        // 모달창을 띄우고 사용자가 누를 때까지 Promise를 유지시켜 멈추게 하는 함수
-        function showEmailModal() {
-            document.getElementById('emailModal').classList.add('show');
-            return new Promise(resolve => {
-                resolveModalPromise = resolve; // 모달 버튼을 누르면 resolve가 호출되게 전역 저장
-            });
-        }
+    // 모달창을 띄우고 사용자가 누를 때까지 Promise를 유지시켜 멈추게 하는 함수
+    function showEmailModal() {
+        document.getElementById('emailModal').classList.add('show');
+        return new Promise(resolve => {
+            resolveModalPromise = resolve; // 모달 버튼을 누르면 resolve가 호출되게 전역 저장
+        });
+    }
 
-        // 모달에서 사용자가 [확인] 버튼을 눌렀을 때
-        function confirmEmailAlert() {
-            document.getElementById('emailModal').classList.remove('show');
-            startBtn.disabled = false; 
-            
-            if (resolveModalPromise) { //리모컨이 잘세팅이됨
-                resolveModalPromise(); // 일시정지 상태였던 async 함수를 깨움
-            }
-        }
-
-    
-    //실패 모달창 띄운뒤 확인버튼눌럿을때 뒤로가기 효과
-        function showFailureModal(error) {
-            // console.log(error);
-            document.getElementById("FailModal-text").textContent = error;
-            document.getElementById('FailModal').classList.add('show');
-            return new Promise(resolve => {
-                resolveModalPromise = resolve;  //실패나 성공 둘다 될일은 없으므로 변수 재활용
-            });
-        }
-
-        function confirmFailAlert(){
-            document.getElementById('FailModal').classList.remove('show');
-            goBackPage();
-            if (resolveModalPromise) { 
-                resolveModalPromise(); 
-            }
-        }
+    // 모달에서 사용자가 [확인] 버튼을 눌렀을 때
+    function confirmEmailAlert() {
+        document.getElementById('emailModal').classList.remove('show');
+        startBtn.disabled = false; 
         
-    </script>
+        if (resolveModalPromise) { //리모컨이 잘세팅이됨
+            resolveModalPromise(); // 일시정지 상태였던 async 함수를 깨움
+        }
+    }
+
+        
+    //실패 모달창 띄운뒤 확인버튼눌럿을때 뒤로가기 효과
+    function showFailureModal(error) {
+        // console.log(error);
+        document.getElementById("FailModal-text").textContent = error;
+        document.getElementById('FailModal').classList.add('show');
+        return new Promise(resolve => {
+            resolveModalPromise = resolve;  //실패나 성공 둘다 될일은 없으므로 변수 재활용
+        });
+    }
+
+    function confirmFailAlert(){
+        document.getElementById('FailModal').classList.remove('show');
+        goBackPage();
+        if (resolveModalPromise) { 
+            resolveModalPromise(); 
+        }
+    }
+</script>
 
     <script>
 //미리 전역으로 세팅
-document.addEventListener("DOMContentLoaded",() => {
+document.addEventListener("DOMContentLoaded", async () => {
+    let email;
+    const authContainer = document.getElementById('auth-container');
 
     const step1 = document.getElementById('step1');
     const step2 = document.getElementById('step2');
@@ -464,6 +466,27 @@ document.addEventListener("DOMContentLoaded",() => {
     const mailform = document.getElementById('mailform')
     const mailformClone = mailform.content.cloneNode(true);
 
+    try {
+        //서버에 현재 세션 정보 요청
+        const response = await axios.get('/api/auth-status');
+        //axios로 응답받은 데이터는 .data에 들어있는데 그게 객체여서 .isLoggedIn에 접근
+        // 응답받은 데이터에 따라 화면을 직접 변경
+        // console.log(response.data)
+        
+        if (response.data.isLoggedIn) {
+        // 로그인 성공 상태라면 HTML 내용을 유저 아이디와 로그아웃 버튼으로 교체
+        authContainer.innerHTML = `
+            <span><strong>${response.data.user.u_id}</strong>님 환영합니다.</span>
+            <a href="/logout" style="margin-left: 10px;">로그아웃</a>
+        `;
+        //끝내기전에 이메일 전역으로 저장
+        email = response.data.user.u_email;
+        }
+        // 로그인 안 된 상태는 기본 디폴트 상태
+
+    } catch (error) {
+        console.error('로그인 상태를 확인하는 중 오류 발생:', error);
+    }
     
     // 결제 게이트웨이 시스템 구현
     class PaymentProcess {
@@ -571,13 +594,12 @@ document.addEventListener("DOMContentLoaded",() => {
             //이 시점에서 이메일발송이 fetch가 이루어져야함
             const title = '영수증입니다.'
             const content = mailformClone.querySelector("#table").outerHTML
-
-
+            // console.log(email);
             // Node.js 서버의 /send-email 주소로 데이터 전송
             const response = await fetch('/send-email', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title, content })
+                body: JSON.stringify({ title, content,email })
             });
 
             // const result = await response.json();
@@ -910,7 +932,11 @@ document.addEventListener("DOMContentLoaded",() => {
 
         <!-- 2. 하단 결제 세부 내용 태그들 -->
         <!-- 신용카드 입력창 (처음엔 active가 있어서 보임) -->
-        <div style="text-align: right;"><a href="/loginPage">로그인</a></div>
+        <div id="auth-container" style="text-align: right;">
+            <!-- 기본 상태는 로그인 링크만 보여줌 -->
+            <a href="/loginPage">로그인</a>
+        </div>
+
         
         <div id="card-form" class="payment-content active">
             <h3>💳 신용카드 결제창</h3>
@@ -943,15 +969,6 @@ document.addEventListener("DOMContentLoaded",() => {
         </div>
     </div>
 
-<!-- 뒤로가기 기능 -->
-<script>
-function goBackPage() {
-    resetAllPayments();
-    document.getElementById('payment-card-layer').style.display = 'none';
-    document.getElementById('inputForm').style.display = 'block';
-}
-</script>
-    
 <!-- 검증 타임라인단 -->
 <div class="payment-card-wrapper" id="payment-card-layer" style="display: none;">
     <div class="payment-card">
@@ -1004,35 +1021,40 @@ function goBackPage() {
     </div>
 </div>
 
+<!-- 뒤로가기 기능 -->
+<script>
+function goBackPage() {
+    resetAllPayments();
+    document.getElementById('payment-card-layer').style.display = 'none';
+    document.getElementById('inputForm').style.display = 'block';
+}
+</script>
 
+<!-- 3. 버튼 클릭 시 신용카드와 카카오단을 스위칭하는 자바스크립트 -->
+<script>
     
-    
+    const buttons = document.querySelectorAll('.tab-button');
+    const contents = document.querySelectorAll('.payment-content');
+
+    // 각 버튼에 클릭 이벤트 설정
+    const handleTabClick = (e) => {
+        const currentButton = e.target;
+        const targetId = currentButton.getAttribute('data-target');
+
+        // 모든 버튼과 콘텐츠에서 active 클래스 제거
+        buttons.forEach(btn => btn.classList.remove('active'));
+        contents.forEach(content => content.classList.remove('active'));
+
+        // 클릭된 버튼과 해당 콘텐츠에만 active 클래스 추가
+        currentButton.classList.add('active');
+        document.getElementById(targetId).classList.add('active');
+    };
+
+    // 각 버튼에 이벤트 리스너 등록
+    buttons.forEach(button => button.addEventListener('click', handleTabClick));
+</script>
 
 
-
-    <!-- 3. 버튼 클릭 시 신용카드와 카카오단을 스위칭하는 자바스크립트 -->
-    <script>
-        
-        const buttons = document.querySelectorAll('.tab-button');
-        const contents = document.querySelectorAll('.payment-content');
-
-        // 각 버튼에 클릭 이벤트 설정
-        const handleTabClick = (e) => {
-            const currentButton = e.target;
-            const targetId = currentButton.getAttribute('data-target');
-
-            // 모든 버튼과 콘텐츠에서 active 클래스 제거
-            buttons.forEach(btn => btn.classList.remove('active'));
-            contents.forEach(content => content.classList.remove('active'));
-
-            // 클릭된 버튼과 해당 콘텐츠에만 active 클래스 추가
-            currentButton.classList.add('active');
-            document.getElementById(targetId).classList.add('active');
-        };
-
-        // 각 버튼에 이벤트 리스너 등록
-        buttons.forEach(button => button.addEventListener('click', handleTabClick));
-    </script>
 
 </body>
 </html>

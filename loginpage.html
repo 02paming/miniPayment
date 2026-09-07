@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>로그인 폼</title>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 <style>
     /* 기본 리셋 및 폰트 설정 */
     * {
@@ -127,23 +128,57 @@
     <div class="login-wrapper">
         <h2>로그인</h2>
         
-        <div class="input-group">
-            <label for="userid">ID</label>
-            <input type="text" id="userid" placeholder="아이디를 입력하세요" autocomplete="off">
-        </div>
-        
-        <div class="input-group">
-            <label for="userpw">PW</label>
-            <input type="password" id="userpw" placeholder="비밀번호를 입력하세요">
-        </div>
+        <form id="loginForm">
+            <div class="input-group">
+                <label for="userid">ID</label>
+                <input type="text" id="userid" name="id" placeholder="아이디를 입력하세요" autocomplete="off">
+            </div>
+            
+            <div class="input-group">
+                <label for="userpw">PW</label>
+                <input type="password" id="userpw" name="password" placeholder="비밀번호를 입력하세요">
+            </div>
 
-        <!-- 추가된 로그인 버튼 -->
-        <button type="submit" class="login-btn">로그인</button>
+            <!-- 추가된 로그인 버튼 -->
+            <button type="submit" class="login-btn">로그인</button>
+        </form>
 
         <div class="link-group">
             <a href="/signUp">회원가입</a>
         </div>
     </div>
+
+
+    <script>
+    const loginForm = document.getElementById('loginForm');
+
+    loginForm.addEventListener('submit', async function(e) {
+
+        e.preventDefault(); // 새로고침 차단
+
+        // 입력된 폼 데이터 수집
+        const formData = new FormData(loginForm); //form태그 입력값들을 name : value (키벨류)형태로 특수한바구니에 담는개념
+        const data = Object.fromEntries(formData);  //일반 객체형태로 변환
+        console.log(data);
+
+        try {
+            //서버의 로그인 API로 데이터 전송 
+            const response = await axios.post('/api/login', data);
+            // 서버 응답 처리
+            //로그인
+            alert('🎉 로그인이 완료되었습니다!'); 
+            //메인페이지로 이동
+            window.location.href = '/'
+        } catch (error) {
+        //예외처리
+            //로그인 실패
+            if(error.response)
+                alert("로그인 실패!");
+            console.error('에러 발생:', error);
+            alert('서버와 통신 중 오류가 발생했습니다.');
+        }
+    });
+</script>
 
 </body>
 </html>
