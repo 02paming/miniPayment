@@ -754,6 +754,12 @@ document.addEventListener("DOMContentLoaded", async () => {
             mailformClone.getElementById("crd_installments").textContent = Number(installments.value);
             // console.log(Number(installments.value))
 
+            //주문 시간 반영
+            const [day, time] = new Date(Date.now() + 9*60*60*1000).toISOString().split('T');
+
+            mailformClone.getElementById('orderNum').textContent = `#ORD-${day.replace(/-/g, '')}`;
+            mailformClone.getElementById('paymentTime').textContent = `${day} ${time.slice(0, 5)}`;
+
             //결제 프로세스 타임라인 상단 가격표시
             const cardTitle = document.querySelector(".card-title");
             cardTitle.textContent = `💳 결제 요청 `;
@@ -839,8 +845,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                                     <tr>
                                         <td style="font-size: 14px; color: #64748b; line-height: 1.6;">
-                                            <strong>주문 번호:</strong> #ORD-20260806<br>
-                                            <strong>결제 일시:</strong> 2026-08-06 10:50
+                                            <strong>주문 번호:</strong> <span id="orderNum">#ORD-20260806</span><br>
+                                            <strong>결제 일시:</strong> <span id="paymentTime">2026-08-06 10:50</span>
                                         </td>
                                         <td align="right" style="font-size: 14px; color: #64748b; line-height: 1.6; vertical-align: bottom;">
                                             <strong>결제 수단:</strong> 신용카드(<span id="crd_card_number">1234</span>)<br>
@@ -870,15 +876,16 @@ document.addEventListener("DOMContentLoaded", async () => {
                                     </tr>
                                     <!-- 상품 1 -->
                                     <tr style="font-size: 15px; color: #334155; border-bottom: 1px solid #f1f5f9;">
-                                        <td style="padding: 15px 0; font-weight: 500;">프리미엄 요금제 (1개월 사용권)</td>
-                                        <td align="center" style="padding: 15px 0; color: #64748b;">1</td>
-                                        <td align="right" style="padding: 15px 0; font-weight: 600;">29,000원</td>
+                                        <!-- <td style="padding: 15px 0; font-weight: 500;"></td>
+                                        <td align="center" style="padding: 15px 0; color: #64748b;"></td>
+                                        <td align="right" style="padding: 15px 0; font-weight: 600;"></td> -->
+                                        <td colspan="3">추후에 상품기능 추가</td>
                                     </tr>
                                     <!-- 상품 2 (필요시 추가) -->
                                     <!-- <tr style="font-size: 15px; color: #334155;">
-                                        <td style="padding: 15px 0; font-weight: 500;">부가서비스 옵션 추가</td>
-                                        <td align="center" style="padding: 15px 0; color: #64748b;">1</td>
-                                        <td align="right" style="padding: 15px 0; font-weight: 600;">3,300원</td>
+                                        <td style="padding: 15px 0; font-weight: 500;"></td>
+                                        <td align="center" style="padding: 15px 0; color: #64748b;"></td>
+                                        <td align="right" style="padding: 15px 0; font-weight: 600;"></td>
                                     </tr> -->
                                 </table>
                             </td>
@@ -897,7 +904,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f8fafc; border-radius: 6px; padding: 20px;">
                                     <tr style="font-size: 18px; color: #0f172a; font-weight: bold;">
                                         <td>총 결제금액</td>
-                                        <td align="right" style= "color: #2563eb;"><span id="crd_total_amount">32,300원</span></td>
+                                        <td align="right" style= "color: #2563eb;"><span id="crd_total_amount"></span></td>
                                     </tr>
                                 </table>
                             </td>
@@ -907,8 +914,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                         <tr>
                             <td style="padding: 30px; background-color: #f1f5f9; text-align: center; font-size: 12px; color: #94a3b8; line-height: 1.5;">
                                 본 메일은 발신전용입니다. 문의사항은 고객센터를 이용해주세요.<br>
-                                주식회사 코퍼레이션 | 대표자: 홍길동 | 사업자번호: 123-45-67890<br>
-                                © 2026 Corporation. All rights reserved.
+                                | 대표자: 최성광 | 사업자번호: 010-3091-1075<br>
                             </td>
                         </tr>
 
