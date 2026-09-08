@@ -5,31 +5,109 @@
     <title>결제 수단 선택</title>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <style>
-/* 탭 버튼 스타일 */
-.tab-button {
-    padding: 10px 20px;
-    cursor: pointer;
-    border: 1px solid #ccc;
-    background-color: #f1f1f1;
-}
-/* 활성화된 버튼 스타일 */
-.tab-button.active {
-    background-color: #333;
-    color: #fff;
-    font-weight: bold;
-}
-/* 결제 내용 상자 스타일 */
-.payment-content {
-    display: none; /* ⭐️ 처음에는 모든 결제창을 숨깁니다 */
-    padding: 20px;
-    border: 1px solid #ccc;
-    margin-top: 10px;
-}
-/* ⭐️ active 클래스가 붙은 결제창만 화면에 보여줍니다 */
-.payment-content.active {
-    display: block; 
+/* ----------------------- main ----------------------------- */
+
+/* div태그 속 자식 버튼 2개 중앙배치 */
+.tab-container {
+    display: flex;
+    justify-content: center; 
+    gap: 12px;              
 }
 
+.payment-title{
+    text-align: center;
+}
+
+.payment-wrapper {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+/* 1. 탭 버튼 스타일 */
+.tab-button {
+    padding: 10px 24px;
+    cursor: pointer;
+    border: none;
+    border-radius: 25px;
+    background-color: #f1f5f9;
+    color: #64748b;
+    font-weight: 600;
+    margin-right: 5px;
+    transition: all 0.2s ease;
+}
+
+/* 2. 활성화된 버튼 스타일 */
+.tab-button.active {
+    background-color: #4299e1;
+    color: #fff;
+    font-weight: bold;
+    box-shadow: 0 4px 10px rgba(66, 153, 225, 0.3);
+}
+
+/* 3. 결제 내용 상자 스타일 (비율 수정) */
+.payment-content {
+    display: none; 
+    padding: 35px 40px;
+    border: none;
+    background: #ffffff;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    margin-top: 15px;
+    max-width: 420px; /* ⭐️ 가로로 끝까지 늘어나지 않도록 너비 고정 */
+    box-sizing: border-box;
+}
+
+/* 4. 활성화된 결제창 표시 */
+.payment-content.active {
+    display: block; 
+    animation: fadeIn 0.3s ease;
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------------------------------------------------
+   결제창 내부 입력칸 및 버튼 모던화 
+--------------------------------------------------- */
+.payment-content input {
+    height: 48px;
+    background-color: #f7fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 25px;
+    padding: 0 20px;
+    margin: 8px 0 18px 0;
+    width: 100%;
+    box-sizing: border-box;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+.payment-content input:focus {
+    border-color: #4299e1;
+    background-color: #ffffff;
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.15);
+}
+
+.payment-content button {
+    width: 100%;
+    height: 50px;
+    background-color: #4299e1;
+    color: white;
+    border: none;
+    border-radius: 25px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: background-color 0.2s ease;
+}
+
+.payment-content button:hover {
+    background-color: #3182ce;
+}
+/* -------------------------------------------------------------------------------------- */
 
 
 /*기존에 body로 했던 스타일인데 다른 화면단도 건드리는 태그이기때문에 div를 하나파서 진행*/
@@ -452,7 +530,7 @@
 //미리 전역으로 세팅
 document.addEventListener("DOMContentLoaded", async () => {
     let email;
-    const authContainer = document.getElementById('auth-container');
+    const authContainer = document.querySelector('.auth-link');
 
     const step1 = document.getElementById('step1');
     const step2 = document.getElementById('step2');
@@ -660,6 +738,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
         async executeTransaction() {
             await super.executeTransaction();
+            
             if(this.installments <= 0){
                 console.log('[신용카드] 일시불 승인 완료')
                 step3.querySelector(".step-desc").textContent = `▶ [신용카드] 일시불 승인 완료`;
@@ -733,7 +812,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     //신용카드 버전
     credit_button.addEventListener('click', async () => {
 
-            const inputForm = document.querySelector("#inputForm");
+            const inputForm = document.querySelector(".payment-wrapper");
             const paymentCard = document.querySelector('#payment-card-layer');
 
             const my2CreditCardPayment = new CreditCardPayment(Number(credit_amount.value),credit_name.value,cardNumber.value,Number(installments.value));
@@ -930,50 +1009,62 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 <!-- 인풋폼 -->
     <!-- 1. 상단 결제 수단 선택 버튼 (데이터 속성 data-target 사용) -->
-    <div id="inputForm">
-        <div>
-            <button class="tab-button active" data-target="card-form">신용카드</button>
-            <button class="tab-button" data-target="kakao-form">카카오페이</button>
-        </div>
-
-        <!-- 2. 하단 결제 세부 내용 태그들 -->
-        <!-- 신용카드 입력창 (처음엔 active가 있어서 보임) -->
-        <div id="auth-container" style="text-align: right;">
-            <!-- 기본 상태는 로그인 링크만 보여줌 -->
-            <a href="/loginPage">로그인</a>
-        </div>
-
-        
-        <div id="card-form" class="payment-content active">
-            <h3>💳 신용카드 결제창</h3>
-            <p>신용카드 결제틀짜는곳</p>
-            <p>
-                <div>
-                    <h1>신용카드</h1>
-                    <input type="text" id="credit_amount">결제금액<br>
-                    <input type="text" id="credit_name">이름<br>
-                    <input type="text" id="cardNumber">카드번호<br> <!--다음에 인풋 4개로 4자리씩 받기-->
-                    <input type="text" id="installments">할부개월
-                    <button value="" type="button" id="sendBtn_credit">요청 하기</button>
-                </div>
-            </p>
-        </div>
-
-        <!-- 카카오페이 안내창 (처음엔 active가 없어서 숨겨짐) -->
-        <div id="kakao-form" class="payment-content">
-            <h3>💛 카카오페이 결제창</h3>
-            <p>카카오페이 QR 코드나 간편 결제 안내 세부 틀을 여기에 짜시면 됩니다.우선 금액을 입력하고 결제하는식으로 </p>
-            <p>
-                <div>
-                    <h1>카카오페이</h1>
-                    <input type="text" id="kakao_amount">결제금액<br>
-                    <input type="text" id="kakao_name">이름<br>
-                    <input type="text" id="kakao_point">포인트사용 <!--추후 잔여포인트 추가-->
-                    <button value="" type="button" id="sendBtn_kakao">요청 하기</button>
-                </div>
-            </p>
-        </div>
+<div class="payment-wrapper">
+    <!-- 상단 로그인 링크 -->
+    <div class="auth-link">
+        <a href="/loginPage">로그인</a>
     </div>
+
+    <!-- 결제 수단 선택 탭 -->
+    <div class="tab-container">
+        <button class="tab-button active" data-target="card-form">신용카드</button>
+        <button class="tab-button" data-target="kakao-form">카카오페이</button>
+    </div>
+
+    <!-- 💳 신용카드 결제창 -->
+    <div id="card-form" class="payment-content active">
+        <div class="payment-title">💳 신용카드 결제</div>
+        
+        <div class="input-group-custom">
+            <label for="credit_amount">결제금액</label>
+            <input type="text" id="credit_amount" placeholder="금액을 입력하세요">
+        </div>
+        <div class="input-group-custom">
+            <label for="credit_name">이름</label>
+            <input type="text" id="credit_name" placeholder="이름을 입력하세요">
+        </div>
+        <div class="input-group-custom">
+            <label for="cardNumber">카드번호</label>
+            <input type="text" id="cardNumber" placeholder="0000-0000-0000-0000">
+        </div>
+        <div class="input-group-custom">
+            <label for="installments">할부개월</label>
+            <input type="text" id="installments" placeholder="일시불">
+        </div>
+        
+        <button type="button" class="submit-btn" id="sendBtn_credit">요청 하기</button>
+    </div>
+
+    <!-- 💛 카카오페이 결제창 -->
+    <div id="kakao-form" class="payment-content">
+        <div class="payment-title">💛 카카오페이 결제</div>
+        
+        <div class="input-group-custom">
+            <label for="kakao_amount">결제금액</label>
+            <input type="text" id="kakao_amount" placeholder="금액을 입력하세요">
+        </div>
+        <div class="input-group-custom">
+            <label for="kakao_name">이름</label>
+            <input type="text" id="kakao_name" placeholder="이름을 입력하세요">
+        </div>
+        <div class="input-group-custom">
+            <label for="kakao_point">포인트</label>
+            <input type="text" id="kakao_point" placeholder="사용할 포인트 입력">
+        </div>
+        
+        <button type="button" class="submit-btn" id="sendBtn_kakao">요청 하기</button>
+    </div>
+</div>
 
 <!-- 검증 타임라인단 -->
 <div class="payment-card-wrapper" id="payment-card-layer" style="display: none;">
@@ -1032,32 +1123,29 @@ document.addEventListener("DOMContentLoaded", async () => {
 function goBackPage() {
     resetAllPayments();
     document.getElementById('payment-card-layer').style.display = 'none';
-    document.getElementById('inputForm').style.display = 'block';
+    document.querySelector('.payment-wrapper').style.display = 'block';
 }
 </script>
 
-<!-- 3. 버튼 클릭 시 신용카드와 카카오단을 스위칭하는 자바스크립트 -->
+<!-- 탭 전환을 위한 자바스크립트 -->
 <script>
-    
-    const buttons = document.querySelectorAll('.tab-button');
-    const contents = document.querySelectorAll('.payment-content');
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const paymentContents = document.querySelectorAll('.payment-content');
 
-    // 각 버튼에 클릭 이벤트 설정
-    const handleTabClick = (e) => {
-        const currentButton = e.target;
-        const targetId = currentButton.getAttribute('data-target');
+    tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            // 1. 모든 탭과 콘텐츠의 활성화(active) 클래스 제거
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            paymentContents.forEach(content => content.classList.remove('active'));
 
-        // 모든 버튼과 콘텐츠에서 active 클래스 제거
-        buttons.forEach(btn => btn.classList.remove('active'));
-        contents.forEach(content => content.classList.remove('active'));
-
-        // 클릭된 버튼과 해당 콘텐츠에만 active 클래스 추가
-        currentButton.classList.add('active');
-        document.getElementById(targetId).classList.add('active');
-    };
-
-    // 각 버튼에 이벤트 리스너 등록
-    buttons.forEach(button => button.addEventListener('click', handleTabClick));
+            // 2. 클릭한 버튼에 활성화(active) 클래스 추가
+            button.classList.add('active');
+            
+            // 3. 클릭한 버튼의 data-target과 일치하는 id를 가진 콘텐츠 활성화
+            const targetId = button.getAttribute('data-target');
+            document.getElementById(targetId).classList.add('active');
+        });
+    });
 </script>
 
 
