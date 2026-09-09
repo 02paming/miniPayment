@@ -110,18 +110,26 @@ function writeUsers(users) {
 app.post('/api/signup', (req, res) => {
 
     
-    const { id, password, email } = req.body;
+    const { id, password, email, checkPwd ,idCheckFlag} = req.body;
     // console.log(id)
-
-  // 1. readUsers()로 기존 유저 목록 불러오기
+    
+  //  readUsers()로 기존 유저 목록 불러오기
     readUsers();
-  // 2. id 중복 검사
-    const duplicateUser = users.find(user => user.u_id == id);
-    if(duplicateUser){
-        return res.json({ success: false, message: "id 중복입니다!" });
+
+  // 비밀번호 재입력 맞게쳤는지 검사
+    //비밀번호와 비밀번호재입력이 같지않다면 
+    if(!(password == checkPwd)){
+        return res.json({ success: false, message: "입력하신 비밀번호가 다릅니다!" });
+    }
+
+  // 이메일관련 유효성검사도 진행하기
+
+
+    if(idCheckFlag){
+        return res.json({ success: false, message: "이미 사용중인 아이디입니다." });
     }else{
 
-        // 3. 중복이 아니면 새 유저 객체 만들어서 배열에 push
+        //  중복이 아니면 새 유저 객체 만들어서 배열에 push
         const user = {
             u_id : id,
             u_password : password,
@@ -130,7 +138,7 @@ app.post('/api/signup', (req, res) => {
 
         users.push(user);
 
-        // 4. writeUsers()로 파일에 업데이트된 배열 저장
+        // writeUsers()로 파일에 업데이트된 배열 저장
         writeUsers(users)
         
         // 5. 성공 메시지 응답
@@ -140,6 +148,22 @@ app.post('/api/signup', (req, res) => {
         });
     }
 });
+
+//  id 중복 검사 (버튼 눌러서 업그레이드하기) 버튼눌러서 아이디 중복검사가 통과되면 플래그방식으로 트루넘기고 버튼 enable로 이제 클릭안되게 만들기 
+//  false일때는 이곳에서 아이디 중복을 진행해주세요 라고 띄우기
+//아이디 중복검사 기능
+app.post('/api/idCheck',(req,res) => {
+    const id = req.body.id
+
+    readUsers();
+    
+    const duplicateUser = users.find(user => user.u_id == id);
+    if(duplicateUser){
+        return res.json({ success: false, message: "이미 사용중인 아이디입니다." });
+    }else{
+        res.status(201).json({success : true, message : "사용가능한 아이디 입니다."});
+    }
+})
 
 //로그인후 메인에서 세션검사
 app.get('/api/auth-status', (req, res) => {
