@@ -44,12 +44,13 @@ h2 {
     align-items: center;
     margin-bottom: 20px;
 }
-.first{
+.first,.last{
     margin-bottom: 0px;
 }
 
-.idCheck{
-    margin-left:100px;
+
+.idCheck,.emailCheck{
+    margin-left:85px;
     font-family: Arial, Helvetica, sans-serif;
     font-size: 15px;
 }
@@ -65,7 +66,6 @@ h2 {
 }
 
 .input-group input {
-    flex: 1;
     height: 50px;
     background-color: #f7fafc;
     border: 1px solid #e2e8f0;
@@ -174,7 +174,7 @@ h2 {
         <div class="input-group first">
             <label for="userid">ID</label>
             <div class="id-flex-container">
-                <input type="text" id="userid" name="id" placeholder="아이디를 입력하세요">
+                <input type="text" id="userid" name="id" placeholder="아이디를 입력하세요" required>
                 <button type="button" class="btn-check" id="idCheck">중복검사</button>
             </div>
         </div>
@@ -193,10 +193,15 @@ h2 {
             <input type="password" id="userCheckPwd" name="checkPwd" placeholder="비밀번호를 다시 입력하세요" required>
         </div>
         
-        <div class="input-group">
+        <div class="input-group last">
             <label for="useremail">Email</label>
             <input type="email" id="useremail" name="email" placeholder="example@email.com" required>
         </div>
+
+        <div class="input-group">
+            <div class="emailCheck"></div>
+        </div>
+
         <button type="submit" class="signup-btn">가입하기</button> 
     </form>
 
@@ -210,7 +215,9 @@ h2 {
 <script> 
     const signupForm = document.getElementById('signupForm');
     const userid = document.querySelector('#userid');
+    const useremail = document.querySelector('#useremail');
     const idCheck = document.querySelector('.idCheck'); //아이디중복검사 텍스트태그 객체
+    const emailCheck = document.querySelector('.emailCheck'); 
     let idCheckFlag = 0;
     
     signupForm.addEventListener('submit', async function(e) {
@@ -274,8 +281,39 @@ h2 {
         
     })
 
-    document.getElementById('userid').addEventListener("input",() => {
-        idCheck.textContent = "";
+
+    //아이디정규식검사
+    userid.addEventListener("input",() => {
+        const idRegExp = /^[a-z0-9]{4,20}$/;
+
+        const isValidId = idRegExp.test(userid.value);
+
+        if(!isValidId){
+            idCheck.textContent = "영문 소문자와 숫자를 조합해 4~12자리 아이디를 만들어주세요.";    
+            idCheck.style.color = "red";
+            if(userid.value == ""){
+                idCheck.textContent = ""; 
+            }
+        }else{
+            idCheck.textContent = "";    
+        }
+    })
+
+    //이메일 정규식검사
+    useremail.addEventListener("input",() => {
+        const emailRegExp = /^[0-9a-zA-Z]([-_\.]?[0-9a-zA-Z])*@[0-9a-zA-Z]([-_\.]?[0-9a-zA-Z])*\.[a-zA-Z]{2,3}$/;
+
+        const isValidId = emailRegExp.test(useremail.value);
+
+        if(!isValidId){
+            emailCheck.textContent = "이메일형식이 올바르지않습니다.";    
+            emailCheck.style.color = "red";
+            if(useremail.value == ""){
+                emailCheck.textContent = ""; 
+            }
+        }else{
+            emailCheck.textContent = "";    
+        }
     })
 
 </script>
