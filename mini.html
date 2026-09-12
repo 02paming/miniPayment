@@ -7,6 +7,36 @@
     <style>
 /* ----------------------- main ----------------------------- */
 
+/* 로그인 버튼 기본 스타일 */
+.login-btn,.logout-btn{
+  display: inline-block;
+  padding: 8px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+  background-color: #3b92e4; /* 결제창 버튼과 유사한 블루 */
+  border: none;
+  border-radius: 20px; /* 둥근 모서리 */
+  text-decoration: none; /* 링크 밑줄 제거 */
+  box-shadow: 0 2px 6px rgba(59, 146, 228, 0.2);
+  transition: all 0.2s ease-in-out;
+  cursor: pointer;
+}
+
+/* 마우스를 올렸을 때 (Hover) 효과 */
+.login-btn:hover,.logout-btn:hover{
+  background-color: #2a7fd0; /* 조금 더 짙은 블루 */
+  box-shadow: 0 4px 10px rgba(59, 146, 228, 0.3);
+  transform: translateY(-1px); /* 살짝 위로 떠오르는 효과 */
+}
+
+/* 마우스를 클릭했을 때 (Active) 효과 */
+.login-btn:active,.logout-btn:active{
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(59, 146, 228, 0.2);
+}
+
+
 /* div태그 속 자식 버튼 2개 중앙배치 */
 .tab-container {
     display: flex;
@@ -529,16 +559,21 @@
     <script>
 //미리 전역으로 세팅
 document.addEventListener("DOMContentLoaded", async () => {
+
     let email;
+    let loginflag = 0;
+
     const authContainer = document.querySelector('.auth-link');
+
+    //요청하기 버튼
+    const submitBtn = document.querySelector('.submit-btn');
+    
 
     const step1 = document.getElementById('step1');
     const step2 = document.getElementById('step2');
     const step3 = document.getElementById('step3');
     const step4 = document.getElementById('step4');
-
-    const startBtn = document.getElementById('startBtn');
-    startBtn.disabled = true; 
+    
 
     //메일폼(태그)를 받아옴 (템플릿)
     const mailform = document.getElementById('mailform')
@@ -555,10 +590,15 @@ document.addEventListener("DOMContentLoaded", async () => {
         // 로그인 성공 상태라면 HTML 내용을 유저 아이디와 로그아웃 버튼으로 교체
         authContainer.innerHTML = `
             <span><strong>${response.data.user.u_id}</strong>님 환영합니다.</span>
-            <a href="/logout" style="margin-left: 10px;">로그아웃</a>
+            <a class="logout-btn" href="/logout" style="margin-left: 10px;">로그아웃</a>
         `;
         //끝내기전에 이메일 전역으로 저장
         email = response.data.user.u_email;
+
+        //로그인상태인걸 알기위해 로그인플래그 1로만들기
+        loginflag = 1;
+
+        
         }
         // 로그인 안 된 상태는 기본 디폴트 상태
 
@@ -812,43 +852,48 @@ document.addEventListener("DOMContentLoaded", async () => {
     //신용카드 버전
     credit_button.addEventListener('click', async () => {
 
-            const inputForm = document.querySelector(".payment-wrapper");
-            const paymentCard = document.querySelector('#payment-card-layer');
+        if(!loginflag){
+            alert("로그인 후 진행이 가능합니다!");
+            return;
+        }
 
-            const my2CreditCardPayment = new CreditCardPayment(Number(credit_amount.value),credit_name.value,cardNumber.value,Number(installments.value));
-            //아직 setter getter없음
-            //객체의 정보를 가지고 영수증내용을 바꾸어주어야함(우선 금액,카드번호,할부개월값을 가져오기)
+        const inputForm = document.querySelector(".payment-wrapper");
+        const paymentCard = document.querySelector('#payment-card-layer');
 
-            // 카드 번호 반영 (예: 뒤 4자리만 출력)
-            const displayCardNum = my2CreditCardPayment.cardNumber.toString().slice(-4);
-            // console.log(displayCardNum)
-            mailformClone.getElementById("crd_card_number").textContent = displayCardNum;
+        const my2CreditCardPayment = new CreditCardPayment(Number(credit_amount.value),credit_name.value,cardNumber.value,Number(installments.value));
+        //아직 setter getter없음
+        //객체의 정보를 가지고 영수증내용을 바꾸어주어야함(우선 금액,카드번호,할부개월값을 가져오기)
 
-            // 결제 금액 반영 (천단위 콤마 포맷팅 포함)
-            const formattedAmount = my2CreditCardPayment.amount.toLocaleString() + "원";
-            // console.log(formattedAmount)
-            mailformClone.getElementById("crd_total_amount").textContent = formattedAmount;
-            
-            // 할부 개월 반영
-            mailformClone.getElementById("crd_installments").textContent = Number(installments.value);
-            // console.log(Number(installments.value))
+        // 카드 번호 반영 (예: 뒤 4자리만 출력)
+        const displayCardNum = my2CreditCardPayment.cardNumber.toString().slice(-4);
+        // console.log(displayCardNum)
+        mailformClone.getElementById("crd_card_number").textContent = displayCardNum;
 
-            //주문 시간 반영
-            const [day, time] = new Date(Date.now() + 9*60*60*1000).toISOString().split('T');
+        // 결제 금액 반영 (천단위 콤마 포맷팅 포함)
+        const formattedAmount = my2CreditCardPayment.amount.toLocaleString() + "원";
+        // console.log(formattedAmount)
+        mailformClone.getElementById("crd_total_amount").textContent = formattedAmount;
+        
+        // 할부 개월 반영
+        mailformClone.getElementById("crd_installments").textContent = Number(installments.value);
+        // console.log(Number(installments.value))
 
-            mailformClone.getElementById('orderNum').textContent = `#ORD-${day.replace(/-/g, '')}`;
-            mailformClone.getElementById('paymentTime').textContent = `${day} ${time.slice(0, 5)}`;
+        //주문 시간 반영
+        const [day, time] = new Date(Date.now() + 9*60*60*1000).toISOString().split('T');
 
-            //결제 프로세스 타임라인 상단 가격표시
-            const cardTitle = document.querySelector(".card-title");
-            cardTitle.textContent = `💳 결제 요청 `;
+        mailformClone.getElementById('orderNum').textContent = `#ORD-${day.replace(/-/g, '')}`;
+        mailformClone.getElementById('paymentTime').textContent = `${day} ${time.slice(0, 5)}`;
 
-            inputForm.style.display = "none";
-            paymentCard.style.display = "flex";
-            
+        //결제 프로세스 타임라인 상단 가격표시
+        const cardTitle = document.querySelector(".card-title");
+        cardTitle.textContent = `💳 결제 요청 `;
+
+        inputForm.style.display = "none";
+        paymentCard.style.display = "flex";
+        
 
         my2CreditCardPayment.processPayment();
-
+        
         // const title = document.getElementById('mailTitle').value;
         // const content = document.getElementById('mailContent').value;
         
@@ -1003,18 +1048,16 @@ document.addEventListener("DOMContentLoaded", async () => {
             </tr>
         </table>
     </template>
-    <div id="template"></div>
-
-
+    
+   <!-- 상단 로그인 링크 -->
+    <div class="auth-link">
+        <a href="/loginPage" class="login-btn">로그인</a>
+    </div>
 
 <!-- 인풋폼 -->
     <!-- 1. 상단 결제 수단 선택 버튼 (데이터 속성 data-target 사용) -->
 <div class="payment-wrapper">
-    <!-- 상단 로그인 링크 -->
-    <div class="auth-link">
-        <a href="/loginPage">로그인</a>
-    </div>
-
+ 
     <!-- 결제 수단 선택 탭 -->
     <div class="tab-container">
         <button class="tab-button active" data-target="card-form">신용카드</button>

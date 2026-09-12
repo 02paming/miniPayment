@@ -188,7 +188,7 @@
 
         <div id="result"></div>
 
-        <a href="/logout" class="logout">로그아웃</a>
+        <a href="/kakaoLogout" class="logout">로그아웃</a>
     </div>
 
     <script>
@@ -200,8 +200,6 @@
             // 프론트엔드 UI(텍스트 영역)에 데이터 반영하기 //포인트를 쓴 최종결제금액
             document.getElementById('price').innerText = `${amount - points}`;
 
-            // 사용이 끝났다면 스토리지에서 삭제 (선택)
-            sessionStorage.removeItem('pendingPayment');
         }
 
 
@@ -287,6 +285,11 @@
 
 
                     alert('결제가 완료되었습니다.');
+
+                    
+                    // 사용이 끝났다면 스토리지에서 삭제 
+                    sessionStorage.removeItem('pendingPayment');
+
                     window.close(); // 현재 팝업창 닫기
                     return;
 

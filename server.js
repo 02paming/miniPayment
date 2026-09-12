@@ -535,7 +535,7 @@ app.post('/api/payment', async (req, res) => {
 
 
 // 6. 로그아웃(카카오톡 )
-app.get('/logout', (req, res) =>    {
+app.get('/kakaoLogout', (req, res) =>    {
     req.session.destroy((err) => {
 
         //예외처리
