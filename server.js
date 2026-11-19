@@ -1,13 +1,23 @@
+require('dotenv').config({ quiet: true }); // .env 파일의 비밀값을 process.env 로 불러옴 (.env 는 Git 에 올리지 않음)
 const express = require('express');
 const session = require('express-session');
 const axios = require('axios');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const fs = require('fs');
+const bcrypt = require('bcryptjs'); // 비밀번호 해시 저장용
 
 const app = express();
 
-const PORT = 3000;
+// 필수 환경변수가 비어 있으면 서버를 시작하지 않음 (비밀값을 코드에 하드코딩하지 않기 위해)
+const REQUIRED_ENV = ['SESSION_SECRET', 'NAVER_MAIL_USER', 'NAVER_MAIL_PASS', 'KAKAO_REST_API_KEY', 'KAKAO_CLIENT_SECRET'];
+const missingEnv = REQUIRED_ENV.filter((k) => !process.env[k]);
+if (missingEnv.length) {
+    console.error(`[설정 오류] .env 에 다음 값이 없습니다: ${missingEnv.join(', ')} (.env.example 참고)`);
+    process.exit(1);
+}
+
+const PORT = process.env.PORT || 3000;
 
 
 
@@ -32,7 +42,7 @@ app.use(cookieParser());
 // 세션 미들웨어 설정
 app.use(
     session({
-        secret: 'my-secret-key-change-this',
+        secret: process.env.SESSION_SECRET,
         resave: false,
         saveUninitialized: false,
 
@@ -107,7 +117,7 @@ function writeUsers(users) {
 
 // 2. 회원가입, 로그인 기능 (API)
 // 회원가입
-app.post('/api/signup', (req, res) => {
+app.post('/api/signup', async (req, res) => {
 
     
     const { id, password, email, checkPwd ,idCheckFlag} = req.body;
@@ -132,7 +142,7 @@ app.post('/api/signup', (req, res) => {
         //  중복이 아니면 새 유저 객체 만들어서 배열에 push
         const user = {
             u_id : id,
-            u_password : password,
+            u_password : await bcrypt.hash(password, 10), // 평문 대신 bcrypt 해시로 저장
             u_email : email
         }
 
@@ -177,16 +187,30 @@ app.get('/api/auth-status', (req, res) => {
 });
 
 // 로그인 
-app.post('/api/login', (req, res) => {
+app.post('/api/login', async (req, res) => {
     const { id, password } = req.body;
 
     // 1. readUsers()로 유저 목록 불러오기
     readUsers()
     // 2. id와 password가 일치하는 유저 찾기
-    const loginUser = users.find(user => user.u_id == id && user.u_password == password);
+    const found = users.find(user => user.u_id == id);
+    let loginUser = null;
+    if (found && typeof password === 'string') {
+        const stored = String(found.u_password || '');
+        if (stored.startsWith('$2')) {
+            // bcrypt 해시와 비교
+            if (await bcrypt.compare(password, stored)) loginUser = found;
+        } else if (stored === password) {
+            // 예전 평문 저장 계정: 로그인 성공 시 해시로 바꿔서 다시 저장 (1회 이전)
+            found.u_password = await bcrypt.hash(password, 10);
+            writeUsers(users);
+            loginUser = found;
+        }
+    }
     if(loginUser){
         // 3. 일치하면 해당 유저 정보를 세션에 저장후 메인화면으로 리다이렉트
-        req.session.loginUser = loginUser;
+        // 세션에는 비밀번호를 넣지 않음 (auth-status 응답으로 브라우저에 노출되던 문제 수정)
+        req.session.loginUser = { u_id: loginUser.u_id, u_email: loginUser.u_email };
         res.redirect("/");
     }else{
         // 4. 실패 시 에러 메시지 응답
@@ -212,14 +236,14 @@ app.post('/send-email', (req, res) => {
         port: 465,
         secure: true,
         auth: {
-            user: '02paming@naver.com', // 내 네이버 이메일 전체 주소
-            pass: '3BBPSMEFPUWJ' // 일반 PW 또는 2단계 인증 시 '앱 비밀번호'
+            user: process.env.NAVER_MAIL_USER, // 내 네이버 이메일 전체 주소
+            pass: process.env.NAVER_MAIL_PASS // 일반 PW 또는 2단계 인증 시 '앱 비밀번호'
         }
     });
 
     // 메일 내용 설정
     const mailOptions = {
-        from: '02paming@naver.com', // 보내는 사람 (위 user와 동일)
+        from: process.env.NAVER_MAIL_USER, // 보내는 사람 (위 user와 동일)
         to: email, // 테스트 메일을 받아볼 이메일 주소
         subject: title,
         html: content
@@ -248,13 +272,13 @@ app.post('/send-email', (req, res) => {
 
 // 카카오 설정
 // 카카오 REST API 키
-const REST_API_KEY = '05abe5ac038d15ff75e6137aba0e4cb4';
+const REST_API_KEY = process.env.KAKAO_REST_API_KEY;
 
 // 카카오 Client Secret
-const CLIENT_SECRET = '5qhX8lLtRyIrs3vKAYa27b4chdNTgBSx';
+const CLIENT_SECRET = process.env.KAKAO_CLIENT_SECRET;
 
 // 카카오 개발자 콘솔에 등록한 Redirect URI
-const REDIRECT_URI = 'http://localhost:3000/auth/kakao/callback';
+const REDIRECT_URI = process.env.KAKAO_REDIRECT_URI || 'http://localhost:3000/auth/kakao/callback';
 
 // 프론트 파일 제공
 app.use(express.static(path.join(__dirname, 'public')));
